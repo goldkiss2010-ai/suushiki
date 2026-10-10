@@ -1,5 +1,6 @@
 import { layoutText, isNotStartingChar, isNotEndingChar, isInseparablePair } from '@non-standardworld/stone-engine.js';
 import { documentSource } from './document-source.js';
+import { mathBoundaryGaps, BOUNDARY_POLICIES } from './math-boundary.js';
 
 const EPS = 1e-6;
 const LATIN_WORD = /^[\p{Script=Latin}\p{N}\p{M}'’_-]+$/u;
@@ -30,8 +31,13 @@ function diagnostics(runs, kinsoku, wordPolicy, width) {
   }
   const wordSplits = wordPolicy === 'preserve' ? [...words.values()].filter(w => w.lines.size > 1)
     .map(w => ({ word: w.word, lines: [...w.lines] })) : [];
-  const horizontalOverflows = runs.filter(r => !r.isNewline && (r.frame.x < -EPS || r.frame.x + r.frame.width > width + EPS))
-    .map(r => ({ line: r.line, char: r.char, mathId: r.mathId, left: r.frame.x, right: r.frame.x + r.frame.width }));
+  const horizontalOverflows = runs.filter(r => {
+    const f = r.advanceFrame ?? r.frame;
+    return !r.isNewline && (f.x < -EPS || f.x + f.width > width + EPS);
+  }).map(r => {
+    const f = r.advanceFrame ?? r.frame;
+    return { line: r.line, char: r.char, mathId: r.mathId, left: f.x, right: f.x + f.width };
+  });
   return { boundaryViolations, wordSplits, horizontalOverflows };
 }
 
@@ -63,15 +69,33 @@ function groupsFor(runs, kinsoku, wordPolicy) {
   return groups;
 }
 
-function repairPart(runs, layout, width, kinsoku, wordPolicy, budget) {
+function repairPart(runs, layout, width, kinsoku, wordPolicy, budget, markers) {
   const groups = groupsFor(runs, kinsoku, wordPolicy);
   const lines = [];
   let start = 0, end = 0, measured;
   const measure = (a, b) => {
     if (--budget.remaining < 0) return null;
     budget.candidates++;
-    const ctx = layout(runs.slice(a, b).map(r => r.char).join('') + '\n', Infinity);
+    const first = runs[a]?.char, last = runs[b - 1]?.char;
+    const override = new Map();
+    // A soft line edge has no neighbour outside the line: retract the
+    // generated margin from that edge *before* checking line fit.
+    if (markers.has(first)) {
+      const m = markers.get(first);
+      override.set(first, m.width + m.rightGap - (first === last ? m.rightGap : 0));
+    }
+    if (markers.has(last)) {
+      const m = markers.get(last);
+      override.set(last, m.width + m.leftGap - (first === last ? m.leftGap : 0));
+    }
+    if (first === last && markers.has(first)) override.set(first, markers.get(first).width);
+    const ctx = layout(runs.slice(a, b).map(r => r.char).join('') + '\n', Infinity, override);
     const candidate = ctx.runs.filter(r => !r.isNewline);
+    for (const [i, run] of candidate.entries()) if (markers.has(run.char)) {
+      const m = markers.get(run.char);
+      run.mathPaddingLeft = i === 0 ? 0 : m.leftGap;
+      run.mathPaddingRight = i === candidate.length - 1 ? 0 : m.rightGap;
+    }
     const fits = !ctx.isTruncated && candidate.length === b - a && candidate.every(r =>
       r.line === 0 && r.frame.x >= -EPS && r.frame.x + r.frame.width <= width + EPS);
     return { runs: candidate, fits };
@@ -95,14 +119,16 @@ function repairPart(runs, layout, width, kinsoku, wordPolicy, budget) {
 }
 
 export function layoutDocument({ items, boxes = new Map(), width, options = {}, measurer,
-  policy = 'adaptive', boundaryPolicy = 'repair', conflictPolicy = 'inspect', wordPolicy = 'preserve' }) {
+  policy = 'adaptive', boundaryPolicy = 'repair', conflictPolicy = 'inspect', wordPolicy = 'preserve',
+  boundarySpacing = 'none' }) {
   if (!Number.isFinite(width) || width <= 0) throw new Error('組版幅が不正です。');
   if (!['adaptive', 'fixed'].includes(policy) || !['repair', 'stone'].includes(boundaryPolicy) ||
-      !['inspect', 'withhold'].includes(conflictPolicy) || !['preserve', 'break'].includes(wordPolicy)) throw new Error('組版方針が不正です。');
+      !['inspect', 'withhold'].includes(conflictPolicy) || !['preserve', 'break'].includes(wordPolicy) ||
+      !BOUNDARY_POLICIES.includes(boundarySpacing)) throw new Error('組版方針が不正です。');
   const source = documentSource(items);
   const markers = new Map(), mathItems = [], ids = new Set();
   let codePoint = 0xf0000;
-  const encoded = items.map(item => {
+  const encoded = items.map((item, index) => {
     if (item.type === 'text') return item.text;
     if (ids.has(item.id)) throw new Error('数式の識別子が重複しています。');
     ids.add(item.id);
@@ -110,17 +136,20 @@ export function layoutDocument({ items, boxes = new Map(), width, options = {}, 
     validateBox(box);
     let marker;
     do { marker = String.fromCodePoint(codePoint++); } while (source.includes(marker));
-    markers.set(marker, { ...item, ...box, id: item.id });
+    const boundary = mathBoundaryGaps(items, index, { policy: boundarySpacing, fontSize: options.fontSize ?? 20 });
+    markers.set(marker, { ...item, ...box, id: item.id, leftGap: boundary.left, rightGap: boundary.right,
+      boundary, advanceWidth: box.width + boundary.left + boundary.right });
     mathItems.push({ ...item, width: box.width, ascent: box.ascent, descent: box.descent });
     return marker;
   }).join('');
-  const resultBase = { source, items, mathItems, policy, boundaryPolicy, conflictPolicy, wordPolicy };
+  const resultBase = { source, items, mathItems, policy, boundaryPolicy, conflictPolicy, wordPolicy, boundarySpacing };
   const oversized = mathItems.filter(m => m.width > width).map(m => ({ id: m.id, requiredWidth: m.width }));
   if (oversized.length) return { ...resultBase, status: 'unsatisfied-width', displayAllowed: false, availableWidth: width, oversized };
   const resolved = { ...options, direction: 'lrTb', textAlign: 'leading', directionAlign: 'start',
     adjustsFontSizeToFitWidth: false, minimumScaleFactor: 0 };
-  const layout = (text, availableWidth) => layoutText(text, resolved, {
-    advance: (font, size, char) => markers.has(char) ? markers.get(char).width : measurer.advance(font, size, char),
+  const layout = (text, availableWidth, overrides = new Map()) => layoutText(text, resolved, {
+    advance: (font, size, char) => markers.has(char) ?
+      (overrides.get(char) ?? markers.get(char).advanceWidth) : measurer.advance(font, size, char),
     metrics: (font, size) => measurer.metrics(font, size),
   }, { width: availableWidth });
   const ctx = layout(encoded, width);
@@ -129,7 +158,12 @@ export function layoutDocument({ items, boxes = new Map(), width, options = {}, 
     const text = runs.map(r => r.char).join('');
     if (LATIN_WORD.test(text) && /[\p{Script=Latin}\p{N}]/u.test(text)) for (const run of runs) run.wordId = token.start;
   }
-  for (const run of ctx.runs) if (markers.has(run.char)) run.mathId = markers.get(run.char).id;
+  for (const run of ctx.runs) if (markers.has(run.char)) {
+    const box = markers.get(run.char);
+    run.mathId = box.id;
+    run.mathPaddingLeft = box.leftGap;
+    run.mathPaddingRight = box.rightGap;
+  }
   const kinsoku = options.kinsoku !== false;
   const parts = [{ runs: [], newline: null }];
   for (const run of ctx.runs) {
@@ -142,8 +176,9 @@ export function layoutDocument({ items, boxes = new Map(), width, options = {}, 
   for (const [partIndex, part] of parts.entries()) {
     const initial = diagnostics(part.runs, kinsoku, wordPolicy, width);
     let repaired;
-    if (boundaryPolicy === 'repair' && hasConflict(initial)) {
-      repaired = repairPart(part.runs, layout, width, kinsoku, wordPolicy, budget);
+    if (boundaryPolicy === 'repair' && (hasConflict(initial) ||
+        (boundarySpacing !== 'none' && part.runs.some(r => r.mathId)))) {
+      repaired = repairPart(part.runs, layout, width, kinsoku, wordPolicy, budget, markers);
       const { lines, ...entry } = repaired;
       repairs.push({ part: partIndex, ...entry });
     }
@@ -155,6 +190,10 @@ export function layoutDocument({ items, boxes = new Map(), width, options = {}, 
         target.position = { ...measured.position, y: measured.position.y + index * ctx.adjustLineHeight };
         target.frame = { ...measured.frame, y: measured.frame.y + index * ctx.adjustLineHeight };
         target.fontId = measured.fontId;
+        if (target.mathId) {
+          target.mathPaddingLeft = measured.mathPaddingLeft;
+          target.mathPaddingRight = measured.mathPaddingRight;
+        }
         target.line = index;
         target.visibility = 'visible';
       }
@@ -183,7 +222,10 @@ export function layoutDocument({ items, boxes = new Map(), width, options = {}, 
     reason: 'Stone returned hidden or ellipsis runs', repairs };
   for (const run of ctx.runs) if (run.mathId) {
     const box = markers.get(run.char);
-    run.frame = { x: run.frame.x, y: run.position.y - box.ascent, width: box.width, height: box.ascent + box.descent };
+    // Advance and visible box are different: only the latter is painted.
+    run.advanceFrame = { ...run.frame };
+    run.frame = { x: run.advanceFrame.x + run.mathPaddingLeft,
+      y: run.position.y - box.ascent, width: box.width, height: box.ascent + box.descent };
   }
   const byLine = Array.from({ length: ctx.lineCount }, () => []);
   for (const run of ctx.runs) byLine[run.line].push(run);
@@ -219,13 +261,17 @@ export function layoutDocument({ items, boxes = new Map(), width, options = {}, 
   const geometry = ctx.runs.filter(r => r.mathId).map(run => {
     const box = markers.get(run.char);
     return { id: run.mathId, tex: box.tex, x: run.frame.x, y: run.frame.y, width: box.width,
-      height: box.ascent + box.descent, ascent: box.ascent, descent: box.descent, baseline: run.position.y, line: run.line };
+      height: box.ascent + box.descent, ascent: box.ascent, descent: box.descent, baseline: run.position.y, line: run.line,
+      boundary: { policy: boundarySpacing, requestedLeft: box.leftGap, requestedRight: box.rightGap,
+        appliedLeft: run.mathPaddingLeft, appliedRight: run.mathPaddingRight,
+        sourceBefore: box.boundary.before, sourceAfter: box.boundary.after } };
   });
   ctx.renderedSize = { width: Math.max(0, ...ctx.runs.map(r => r.frame.x + r.frame.width)),
     height: Math.max(...lines.map(l => l.bottom)) + gap / 2 };
-  const conflict = !!hasConflict(d);
+  const repairFailures = repairs.filter(r => !r.applied);
+  const conflict = !!hasConflict(d) || repairFailures.length > 0;
   return { ...resultBase, status: conflict ? 'constraint-conflict' : 'composed',
     displayAllowed: !conflict || conflictPolicy === 'inspect', repairs, candidateCount: budget.candidates,
-    geometry, lines, overlaps, ...d, lineCount: ctx.lineCount, renderedSize: ctx.renderedSize,
+    geometry, lines, overlaps, repairFailures, ...d, lineCount: ctx.lineCount, renderedSize: ctx.renderedSize,
     runs: ctx.runs, ctx };
 }
