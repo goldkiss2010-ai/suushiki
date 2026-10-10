@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { mkdir } from 'node:fs/promises';
 import { chromium } from 'playwright';
+import { collisionCases, collisionCaseKeys } from '../public/collision-cases.js';
 
 const base = 'http://127.0.0.1:5173';
 const server = spawn(process.execPath, ['scripts/serve.mjs'], {
@@ -77,6 +78,77 @@ try {
   await page.locator('#document-example').selectOption('boundaries');
   await ready(page);
   assert.ok(await page.locator('[data-document-math]').count() > 1);
+
+  // Real MathJax + Stone comparison for all seven collision classes.
+  await page.locator('#document-font-size').selectOption('17');
+  await page.locator('#document-width').evaluate(input => {
+    input.value = '720';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  for (const key of collisionCaseKeys) {
+    const fixture = collisionCases[key];
+    await page.locator('#document-example').selectOption(key);
+    await page.waitForFunction(({ key, source }) => {
+      const status = document.getElementById('document-status');
+      const metrics = document.getElementById('document-metrics').textContent;
+      if (status.dataset.state !== 'ready' || !metrics) return false;
+      const data = JSON.parse(metrics);
+      return document.getElementById('document-example').value === key &&
+        data.source === source && data.settings.width === 720 &&
+        data.settings.fontSize === 17;
+    }, { key, source: fixture.source }, { timeout: 30000 });
+    const state = JSON.parse(await page.locator('#document-metrics').textContent());
+    assert.equal(state.summary.status, 'composed', key);
+    assert.equal(state.summary.geometry.length, fixture.expectedFormulaCount, key);
+    assert.equal(await page.locator('[data-document-math]').count(), fixture.expectedFormulaCount, key);
+    const drawn = await page.locator('.document-canvas').evaluate(canvas => {
+      const base = canvas.getBoundingClientRect();
+      return [...canvas.querySelectorAll('[data-document-math]')].map(svg => {
+        const rect = svg.getBoundingClientRect();
+        return {
+          id: svg.dataset.documentMath,
+          x: rect.x - base.x, y: rect.y - base.y,
+          width: rect.width, height: rect.height,
+          shapeCount: svg.querySelectorAll('path, use, text').length,
+        };
+      });
+    });
+    for (const [index, item] of drawn.entries()) {
+      const expected = state.summary.geometry[index];
+      assert.equal(item.id, expected.id, key);
+      assert.ok(item.shapeCount > 0, key + ': empty math SVG');
+      for (const dimension of ['x', 'y', 'width', 'height'])
+        assert.ok(Math.abs(item[dimension] - expected[dimension]) < 0.3,
+          key + ': visual and measured ' + dimension + ' differ');
+    }
+    if (key === 't04') {
+      assert.ok(state.summary.lineCount >= 3);
+      assert.deepEqual(state.summary.overlaps, []);
+    }
+    if (key === 't06a') {
+      const formulaWidth = state.summary.geometry[0].width;
+      assert.ok(formulaWidth > 80);
+      const tooNarrow = Math.max(80, Math.ceil(formulaWidth) - 1);
+      await page.locator('#document-width').evaluate((input, value) => {
+        input.value = String(value);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      }, tooNarrow);
+      await page.waitForFunction(value => {
+        const status = document.getElementById('document-status');
+        const metrics = document.getElementById('document-metrics').textContent;
+        return status.dataset.state === 'ready' && metrics &&
+          JSON.parse(metrics).settings.width === value;
+      }, tooNarrow, { timeout: 30000 });
+      const tooNarrowState = JSON.parse(await page.locator('#document-metrics').textContent());
+      assert.equal(tooNarrowState.summary.status, 'unsatisfied-width');
+      assert.equal(await page.locator('[data-document-math]').count(), 0);
+      assert.equal(await page.locator('#document-copy-source').inputValue(), fixture.source);
+      await page.locator('#document-width').evaluate(input => {
+        input.value = '720';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+    }
+  }
   assert.deepEqual(errors, []);
   console.log('Browser smoke checks passed; screenshots saved in artifacts/.');
 } finally {
