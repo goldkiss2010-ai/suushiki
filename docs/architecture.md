@@ -6,8 +6,23 @@ Preserve the text and math source as semantic segments, measure them, compose
 one paragraph, and pass the resulting positions to a renderer.
 
 The current policy is to parameterize author and publication choices and focus
-on [seven collisions](math-typesetting/decisions.md). Preserve Stone's Japanese
-composition rules and limit changes to the connection with measured math.
+on [seven collisions](math-typesetting/decisions.md). Inherit Stone's design
+intent and extend Japanese paragraph composition to measured mathematics.
+The current APIs, data structures, line advance and break positions are
+references for comparison, not implementation invariants.
+
+## Design inheritance, extension and connection
+
+Inherit attention to Japanese punctuation and boundaries, adaptation to changing
+screen sizes, access to internal layout geometry, and efficient relayout.
+Extend the paragraph model to distinguish text runs from measured math items,
+each with appropriate metrics and boundary behavior. Connect a math engine that
+provides typeset geometry, rendering data and a mapping to the original source.
+
+The resulting composition may reuse Stone's layouter, extend its core or revise
+the composition layer. Evaluate these routes against the same small fixtures.
+Changes to the implementation are allowed when they serve the inherited intent
+and the mathematical requirements; document their purpose and observed effects.
 
 ## Three distinct responsibilities
 
@@ -41,7 +56,8 @@ unit conversion, outer spacing and ink bounds. The object above is illustrative,
 The integration also needs a source-range mapping and explicit boundary
 attributes for spacing, justification and allowed breaks. A box's first or last
 visible glyph does not establish these attributes. Math internals remain owned
-by the math engine; Stone adjusts text and the outside of the box.
+by the math engine; the paragraph compositor, informed by Stone's design,
+adjusts text and the outside of the box.
 
 Treating the formula as one word token is insufficient: the inspected Stone
 implementation can split a token that does not fit. The nonbreaking contract
@@ -49,21 +65,29 @@ must survive relayout, kinsoku, measurement, rendering and source mapping.
 
 ## Critical unknowns
 
-- Which of Stone's exposed run, token and placement structures can safely carry a math item?
-- Can its line-breaking algorithm accept arbitrary external boxes, or would a small internal extension be needed?
-- Does it require glyph-by-glyph placement for its Japanese spacing rules?
+- What measured-item contract should extend the current run/token model?
+- Which adapter, core extension or revised composition layer can implement that contract?
+- Which Japanese rules can be reused directly, and which need explicit text/math boundary behavior?
+- How should fixed and content-aware line advance handle tall formulas?
 - Which MathJax output path offers reliable browser dimensions and baseline metrics?
 - Can renderer-independent coordinates preserve selectable, accessible text?
 - What font metrics and browser differences affect reproducibility?
 
 ## Strategy
 
-Begin with an external adapter and a single paragraph. Keep upstream libraries unchanged until a specific missing capability is demonstrated. If an internal change becomes necessary, document the smallest interface addition and upstream compatibility implications.
+Begin with one paragraph and a measured math item. Compare an adapter with a
+core extension or revised compositor, using the inspected Stone implementation
+as a reference. Choose a connection that exposes the required metrics and break
+behavior. Unchanged upstream internals are not an exit condition. Record the
+changed interfaces, their purpose, maintenance implications and attribution.
 
-Keep Stone's punctuation, strong kinsoku, common baseline, constant line advance
-and eligible justification gaps as the starting behavior. Set style policies
-before measuring. Keep input spaces, generated boundary spacing and math-engine
-outer spacing distinct; recompute boundaries after wrapping.
+Use Stone's punctuation, kinsoku, baseline and justification as the initial
+reference policies, then specify their behavior at text/math boundaries.
+Line advance is configurable: compare a fixed policy with a content-aware policy
+that accounts for each line's ascent and descent. Establish a stable baseline
+for each line and record any deliberate change in rhythm or break positions.
+Keep input spaces, generated boundary spacing and math-engine outer spacing
+distinct; recompute boundaries after wrapping.
 
 Use one paragraph line-break owner. In the nonbreaking experiment, investigate
 MathJax 4's `output.linebreaks.inline: false` and verify the actual output before
@@ -75,6 +99,10 @@ neighbors, record the competing constraints. A selected fallback may change
 the policy; do not silently split, clip, shrink or rewrite the formula. Explicit
 truncation or whole-paragraph scaling must preserve the box as a unit, its
 source mapping and agreement between measured and drawn dimensions.
+
+Measured inline images may later share part of the item contract. Figures,
+tables, captions and text wrapping around figures still require separate document
+layout work and are outside the first paragraph experiment.
 
 Avoid claiming EPUB support based on browser success. A separate semantic HTML/MathML export path may be appropriate later, subject to reader compatibility.
 

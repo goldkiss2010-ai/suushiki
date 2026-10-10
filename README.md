@@ -6,6 +6,8 @@ SUUSHIKI is an experimental project exploring how professional Japanese text com
 
 The initial investigation uses [stone-engine.js](https://github.com/non-standardworld/stone_engine_js) for Japanese typography and [MathJax](https://github.com/mathjax/MathJax) for mathematics. Neither the final architecture nor the renderer is fixed.
 
+SUUSHIKI aims to inherit Stone's design intent, extend Japanese paragraph composition to mathematics, and connect it to a math typesetting engine. Stone's current implementation is a reference for this work, not a compatibility requirement.
+
 > Status: research / design. No working integrated typesetter is claimed yet.
 
 ## Why
@@ -19,7 +21,8 @@ The project initially targets **horizontal Japanese prose with inline mathematic
 - **Reuse existing engines.** Do not reimplement Japanese or mathematical typesetting unnecessarily.
 - **Separate composition from rendering.** SVG is useful for inspection but not a mandatory output format.
 - **Keep semantics.** Preserve source text and mathematical expressions rather than treating all formulas as opaque pictures.
-- **Parameterize choices; investigate collisions.** Author and publication styles remain configurable. Preserve Stone's Japanese composition rules and adjust the connection to math where constraints compete.
+- **Inherit Stone's design intent.** Carry forward fine-grained Japanese composition, responsive layout, inspectable geometry and efficient relayout. APIs, item types, line metrics and break handling may evolve to support mathematics.
+- **Parameterize choices; investigate collisions.** Author and publication styles remain configurable. Evaluate competing constraints under the selected policy; record intentional departures from the upstream behavior.
 - **Measure before modifying.** Investigate the actual APIs and limitations of both dependencies before forking.
 - **Compare visually and mechanically.** Use reference HTML + MathJax alongside the experimental output.
 
@@ -28,7 +31,7 @@ The project initially targets **horizontal Japanese prose with inline mathematic
 Render a short Japanese paragraph containing a single inline formula, with a controlled font and width. Record:
 
 1. How each engine measures its content.
-2. Whether stone-engine.js accepts an external inline box in its line-breaking model.
+2. How to connect a measured math item to paragraph composition, including any needed extension to Stone's item or line model.
 3. How baselines and the mathematical axis can be aligned.
 4. What happens when a formula approaches the end of a line.
 5. Whether the same layout decisions can be represented independently of SVG.
@@ -44,6 +47,8 @@ The initial [research collection (日本語)](docs/math-typesetting/README.md) r
 It distinguishes engine algorithms, font metrics, Japanese composition requirements and publication conventions. Each source has an explicit verification status; the comparison inputs have not yet been rendered or measured.
 
 The next investigation focuses on [seven collision patterns](docs/math-typesetting/decisions.md), with [seven targeted inputs](examples/math-conflicts.md). [Stone's design and constraints](docs/math-typesetting/stone-engine.md) are recorded against a fixed upstream commit. Style variants are parameter choices, not collision counts. Integrated behavior remains untested.
+
+The current direction is design inheritance with extension and connection. Exact upstream behavior, including constant line advance, is not an invariant of SUUSHIKI.
 
 ## Scope and output formats
 
