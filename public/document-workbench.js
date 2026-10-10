@@ -2,6 +2,7 @@ import { getSharedCanvasMeasurer } from '@non-standardworld/stone-engine.js';
 import { parseDocument, documentExamples, MathSourceError } from './document-source.js';
 import { layoutDocument } from './document-layout.js';
 import { mountDocument } from './document-render.js';
+import { collisionCases } from './collision-cases.js';
 
 const $ = id => document.getElementById(id);
 const measurer = getSharedCanvasMeasurer();
@@ -203,7 +204,10 @@ $('document-export').addEventListener('click', () => {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 });
 $('document-example').addEventListener('change', () => {
-  $('document-source').value = documentExamples[$('document-example').value];
+  const key = $('document-example').value;
+  const fixture = collisionCases[key];
+  $('collision-focus').textContent = fixture ? fixture.focus : '';
+  $('document-source').value = fixture ? fixture.source : documentExamples[key];
   refresh();
 });
 

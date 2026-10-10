@@ -22,6 +22,7 @@ jobs:
       - run: npm test
       - name: Syntax check browser modules
         run: |
+          node --check public/collision-cases.js
           node --check public/document-source.js
           node --check public/document-layout.js
           node --check public/document-render.js
