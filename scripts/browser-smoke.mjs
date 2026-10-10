@@ -65,7 +65,7 @@ try {
   assert.equal(await page.locator('#document-native-flow-output [data-native-math]').count(), initialFourWay.summary.geometry.length);
   assert.equal(await page.locator('#document-stone-output [data-document-math]').count(), initialFourWay.summary.geometry.length);
   assert.ok(nativeInitial.textBearingLineCount > 0);
-  assert.equal(await page.locator('[data-native-math]').count(), summary.geometry.length);
+  assert.equal(await page.locator('#document-native-output [data-native-math]').count(), summary.geometry.length);
   await mkdir('artifacts', { recursive: true });
   await page.screenshot({ path: 'artifacts/suushiki-document-480.png', fullPage: true });
 
@@ -79,7 +79,7 @@ try {
   assert.equal(await page.locator('#document-source').inputValue(), source);
   const width = await page.locator('.document-canvas').evaluate(el => el.getBoundingClientRect().width);
   assert.equal(width, 240);
-  const nativeWidth = await page.locator('.native-comparison-canvas').evaluate(el =>
+  const nativeWidth = await page.locator('#document-native-output .native-comparison-canvas').evaluate(el =>
     el.getBoundingClientRect().width);
   assert.equal(nativeWidth, 240);
   const nativeFlowWidth = await page.locator('#document-native-flow-output .native-comparison-canvas')
@@ -92,7 +92,7 @@ try {
   await page.locator('#document-source').fill('途中で終わる数式 \\(x');
   await page.locator('#document-status[data-state="error"]').waitFor({ timeout: 15000 });
   assert.equal(await page.locator('[data-document-math]').count(), 0);
-  assert.equal(await page.locator('[data-native-math]').count(), 0);
+  assert.equal(await page.locator('#document-native-output [data-native-math]').count(), 0);
   assert.equal(await page.locator('#document-stone-output [data-document-math]').count(), 0);
   assert.equal(await page.locator('#document-copy-source').inputValue(), '途中で終わる数式 \\(x');
 
@@ -123,7 +123,7 @@ try {
     assert.equal(state.summary.status, 'composed', key);
     assert.equal(state.summary.geometry.length, fixture.expectedFormulaCount, key);
     assert.equal(await page.locator('[data-document-math]').count(), fixture.expectedFormulaCount, key);
-    assert.equal(await page.locator('[data-native-math]').count(), fixture.expectedFormulaCount, key);
+    assert.equal(await page.locator('#document-native-output [data-native-math]').count(), fixture.expectedFormulaCount, key);
     assert.equal(state.nativeComparison.mathCount, fixture.expectedFormulaCount, key);
     assert.equal(state.nativeFlowComparison.mathCount, fixture.expectedFormulaCount, key);
     assert.equal(state.nativeFlowComparison.sourceMatches, true, key);
@@ -169,7 +169,7 @@ try {
       const tooNarrowState = JSON.parse(await page.locator('#document-metrics').textContent());
       assert.equal(tooNarrowState.summary.status, 'unsatisfied-width');
       assert.equal(await page.locator('[data-document-math]').count(), 0);
-      assert.equal(await page.locator('[data-native-math]').count(), fixture.expectedFormulaCount);
+      assert.equal(await page.locator('#document-native-output [data-native-math]').count(), fixture.expectedFormulaCount);
       assert.equal(tooNarrowState.nativeComparison.sourceMatches, true);
       assert.equal(tooNarrowState.nativeComparison.mathCount, fixture.expectedFormulaCount);
       assert.equal(tooNarrowState.nativeFlowComparison.mathCount, fixture.expectedFormulaCount);
@@ -314,7 +314,7 @@ try {
   assert.equal(nativePlain.nativeComparison.sourceMatches, true);
   assert.equal(nativePlain.nativeComparison.mathCount, 1);
   assert.ok(nativePlain.nativeComparison.textBearingLineCount > 0);
-  const plainSourceText = await page.locator('.native-comparison-canvas [data-native-text-start]')
+  const plainSourceText = await page.locator('#document-native-output .native-comparison-canvas [data-native-text-start]')
     .allTextContents();
   assert.equal(plainSourceText.join(''),
     nativePlain.source.split(/\\\([^]*?\\\)/u).join(''));
