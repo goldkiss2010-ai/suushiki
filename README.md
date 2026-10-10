@@ -19,9 +19,9 @@ npm ci
 npm run dev
 ```
 
-Open `http://127.0.0.1:5173/`. The page displays Stone text and four MathJax formulas separately, allows changes to width/font/size, and exports geometry as JSON. Stop the server with Ctrl+C. No build step is required.
+Open `http://127.0.0.1:5173/`. The page displays Stone text and four MathJax formulas separately, and a Japanese paragraph containing one measured placeholder box. It allows changes to width/font/size and box dimensions, compares adaptive and fixed line advance, and exports geometry as JSON. Stop the server with Ctrl+C. No build step is required. Run `npm test` for the placeholder adapter checks.
 
-See [環境構築と実行手順 (Windows / PowerShell)](docs/getting-started.md) and [the verification record](docs/standalone-check.md). The Japanese paragraph and mathematics do not yet share line breaking.
+See [環境構築と実行手順 (Windows / PowerShell)](docs/getting-started.md), [standalone verification](docs/standalone-check.md), and [placeholder integration verification](docs/inline-box-check.md). Actual MathJax formulas do not yet participate in the Japanese paragraph's line breaking.
 
 ## Why
 

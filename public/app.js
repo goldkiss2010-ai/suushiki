@@ -1,4 +1,5 @@
 import { layoutText, getSharedCanvasMeasurer, svgString } from '/vendor/stone/index.js';
+import { layoutInlineBox, inlineBoxSvg } from './inline-box.js';
 
 const $ = id => document.getElementById(id);
 const cases = [
@@ -95,11 +96,12 @@ async function update() {
       $('width-value').value = `${settings.width} px`;
       const stone = renderStone(settings);
       const math = await renderMath(settings);
+      const inlineBox = renderInlineBox(settings, stone.options);
       record = { capturedAt: new Date().toISOString(), userAgent: navigator.userAgent,
         devicePixelRatio, versions: { stone: '0.2.0', mathjax: window.MathJax.version },
-        settings, stone, math };
+        settings, stone, math, inlineBox };
     } while (version !== requested);
-    $('status').textContent = '単体確認 OK：Stone と MathJax の表示・計測が完了しました。';
+    $('status').textContent = '確認 OK：単体計測と仮ボックスの検証が完了しました。';
     $('status').dataset.state = 'ready';
     $('download').disabled = false;
   } catch (error) {
@@ -107,6 +109,25 @@ async function update() {
     $('status').dataset.state = 'error';
     console.error(error);
   } finally { running = false; }
+}
+
+function renderInlineBox(settings, options) {
+  const result = layoutInlineBox({ before: '式の位置を確認する。ここに',
+    after: 'を置き、（括弧）と句読点の折り返しを観察します。次の行も確認します。',
+    box: { id: 'placeholder-1', width: Number($('box-width').value),
+      ascent: Number($('box-ascent').value), descent: Number($('box-descent').value) },
+    width: settings.width, options, measurer, policy: $('line-policy').value });
+  $('box-output').style.width = `${settings.width}px`;
+  $('box-output').innerHTML = inlineBoxSvg(result, settings.showFrames);
+  $('box-source').textContent = '式の位置を確認する。ここに［仮ボックス］を置き、（括弧）と句読点の折り返しを観察します。次の行も確認します。';
+  const { ctx, ...data } = result;
+  const { runs, source, ...summary } = data;
+  $('box-metrics').textContent = JSON.stringify(summary, null, 2);
+  $('box-status').textContent = result.status === 'unsatisfied-width'
+    ? `幅制約未充足：ボックス ${result.requiredWidth} px が組版幅 ${result.availableWidth} px を超えています。幅を広げてください。`
+    : result.overlaps.length ? `固定行送りで ${result.overlaps.length} 組、行の占有領域が重なっています。`
+    : '仮ボックスの配置完了：行の占有領域の重なりはありません。';
+  return data;
 }
 
 $('download').addEventListener('click', () => {
@@ -125,7 +146,7 @@ try {
   if (!window.MathJax?.startup?.promise) throw new Error('MathJax を読み込めませんでした。npm ci と再起動を確認してください。');
   await window.MathJax.startup.promise;
   if (!measurer) throw new Error('Canvas 2D が使えるブラウザーで開いてください。');
-  for (const id of ['width', 'font-size', 'font', 'frames', 'source']) {
+  for (const id of ['width', 'font-size', 'font', 'frames', 'source', 'box-width', 'box-ascent', 'box-descent', 'line-policy']) {
     $(id).addEventListener('input', update);
   }
   document.fonts.addEventListener('loadingdone', update);

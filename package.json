@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Standalone Japanese text and mathematics measurement experiment",
   "engines": { "node": ">=24 <25" },
-  "scripts": { "dev": "node scripts/serve.mjs" },
+  "scripts": { "dev": "node scripts/serve.mjs", "test": "node --test" },
   "dependencies": {
     "@non-standardworld/stone-engine.js": "0.2.0",
     "mathjax": "4.1.3"
