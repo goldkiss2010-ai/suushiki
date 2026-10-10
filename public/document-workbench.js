@@ -22,6 +22,7 @@ function settings() {
     boundaryPolicy: $('document-boundary-policy').value,
     conflictPolicy: $('document-conflict-policy').value,
     wordPolicy: $('document-word-policy').value,
+    boundarySpacing: $('document-boundary-spacing').value,
     showFrames: $('document-frames').checked,
     showBaselines: $('document-baselines').checked,
   };
@@ -86,10 +87,13 @@ function describe(result) {
     result.horizontalOverflows.length + ' 件の横幅超過';
   const repair = result.repairs.length ?
     '／再分割 ' + result.repairs.filter(r => r.applied).length + '/' + result.repairs.length + ' 箇所' : '';
+  const spacing = result.geometry.reduce((total, item) =>
+    total + item.boundary.appliedLeft + item.boundary.appliedRight, 0);
+  const generated = spacing ? '／自動アキ合計 ' + round(spacing) + ' px' : '';
   const fixed = result.overlaps.length ?
     '／行の占有領域が ' + result.overlaps.length + ' 組重複' : '';
   return result.status === 'composed' ?
-    '配置完了：' + result.lineCount + ' 行、' + result.geometry.length + ' 個の数式。' + repair + fixed :
+    '配置完了：' + result.lineCount + ' 行、' + result.geometry.length + ' 個の数式。' + generated + repair + fixed :
     '制約衝突：' + counts + '。' + (result.displayAllowed ? '候補を表示しています。' : '描画を保留しています。') + repair + fixed;
 }
 
@@ -147,6 +151,7 @@ async function refresh() {
         items, boxes, width: config.width, options, measurer,
         policy: config.policy, boundaryPolicy: config.boundaryPolicy,
         conflictPolicy: config.conflictPolicy, wordPolicy: config.wordPolicy,
+        boundarySpacing: config.boundarySpacing,
       });
       if (version !== requested) continue;
       const preview = mountDocument(result, svgById, config);
@@ -214,7 +219,7 @@ $('document-example').addEventListener('change', () => {
 for (const id of [
   'document-source', 'document-width', 'document-font-size', 'document-font',
   'document-line-policy', 'document-boundary-policy', 'document-conflict-policy',
-  'document-word-policy', 'document-frames', 'document-baselines',
+  'document-word-policy', 'document-boundary-spacing', 'document-frames', 'document-baselines',
 ]) $(id).addEventListener('input', refresh);
 
 document.fonts.addEventListener('loadingdone', () => {

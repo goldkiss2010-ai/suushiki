@@ -63,6 +63,13 @@
       <label>行分割
         <select id="document-boundary-policy"><option value="repair">制約を考慮する</option><option value="stone">Stone の候補を観察</option></select>
       </label>
+      <label>数式の外側のアキ
+        <select id="document-boundary-spacing">
+          <option value="none" selected>原文のみ（既定）</option>
+          <option value="quarter">両側 1/4 em（約物にも）</option>
+          <option value="contextual">文字符号のみ 1/4 em（約物を除外）</option>
+        </select>
+      </label>
       <label>欧文単語
         <select id="document-word-policy"><option value="preserve">単語の途中で分割しない</option><option value="break">分割を許す</option></select>
       </label>
@@ -75,6 +82,7 @@
   </section>
   <section>
     <h2>組版プレビュー</h2>
+    <p class="note">自動アキは本文サイズに基づく試験的な規則です。原文の空白は置換せず、明示空白・改行の隣には自動アキを加えません。「制約を考慮する」では折り返し後の行端アキを再計測します。</p>
     <p id="document-diagnostic" role="status"></p>
     <div class="viewport document-viewport"><div id="document-output" aria-hidden="true"></div></div>
     <p class="note">描画は検証用です。文章・数式のコピーは下の原文から行います。固定行送りでの領域重なりは警告として残します。</p>

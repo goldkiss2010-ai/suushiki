@@ -149,6 +149,73 @@ try {
       });
     }
   }
+
+  // T02: changing an outer spacing rule must change only the paragraph's
+  // geometry, never source spaces or the measured math SVG.
+  await page.locator('#document-example').selectOption('t02a');
+  await page.locator('#document-width').evaluate(input => {
+    input.value = '480';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await page.locator('#document-boundary-spacing').selectOption('contextual');
+  await page.waitForFunction(() => {
+    const status = document.getElementById('document-status');
+    const raw = document.getElementById('document-metrics').textContent;
+    return status.dataset.state === 'ready' && raw &&
+      JSON.parse(raw).settings.boundarySpacing === 'contextual' &&
+      document.getElementById('document-example').value === 't02a';
+  });
+  const a = JSON.parse(await page.locator('#document-metrics').textContent());
+  assert.equal(a.summary.status, 'composed');
+  assert.equal(a.summary.geometry.length, 1);
+  const mathBefore = a.summary.geometry[0];
+  assert.ok(mathBefore.boundary.appliedLeft > 0);
+  assert.ok(mathBefore.boundary.appliedRight > 0);
+  assert.equal(mathBefore.boundary.appliedLeft, 17 * 0.25);
+  assert.equal(mathBefore.boundary.appliedRight, 17 * 0.25);
+  assert.ok(!(await page.locator('#document-source').inputValue()).includes(' \\('));
+  const actualBox = await page.locator('[data-document-math]').evaluate(svg => {
+    const rect = svg.getBoundingClientRect();
+    const base = svg.parentElement.getBoundingClientRect();
+    return { x: rect.x - base.x, width: rect.width };
+  });
+  assert.ok(Math.abs(actualBox.x - mathBefore.x) < 0.3);
+  assert.ok(Math.abs(actualBox.width - mathBefore.width) < 0.3);
+  await page.screenshot({ path: 'artifacts/suushiki-boundary-contextual.png', fullPage: true });
+
+  await page.locator('#document-example').selectOption('t02b');
+  await page.waitForFunction(() => {
+    const raw = document.getElementById('document-metrics').textContent;
+    return document.getElementById('document-status').dataset.state === 'ready' &&
+      raw && JSON.parse(raw).source === document.getElementById('document-source').value &&
+      document.getElementById('document-example').value === 't02b';
+  });
+  const b = JSON.parse(await page.locator('#document-metrics').textContent());
+  assert.equal(b.summary.geometry[0].boundary.requestedLeft, 0);
+  assert.equal(b.summary.geometry[0].boundary.requestedRight, 0);
+  assert.ok(b.source.includes('関数 '));
+  assert.ok(b.source.includes(' を考える。'));
+  assert.equal(b.summary.geometry[0].width, mathBefore.width);
+
+  await page.locator('#document-example').selectOption('t02c');
+  await page.waitForFunction(() => {
+    const raw = document.getElementById('document-metrics').textContent;
+    return document.getElementById('document-status').dataset.state === 'ready' &&
+      raw && JSON.parse(raw).source === document.getElementById('document-source').value &&
+      document.getElementById('document-example').value === 't02c';
+  });
+  const c = JSON.parse(await page.locator('#document-metrics').textContent());
+  assert.deepEqual(c.summary.geometry.map(g => [g.boundary.requestedLeft, g.boundary.requestedRight]),
+    [[4.25, 0], [0, 0], [0, 0]]);
+  await page.locator('#document-boundary-spacing').selectOption('quarter');
+  await page.waitForFunction(() => {
+    const raw = document.getElementById('document-metrics').textContent;
+    return document.getElementById('document-status').dataset.state === 'ready' &&
+      raw && JSON.parse(raw).settings.boundarySpacing === 'quarter';
+  });
+  const q = JSON.parse(await page.locator('#document-metrics').textContent());
+  assert.ok(q.summary.geometry.some(g => g.boundary.requestedRight > 0));
+  assert.equal(q.source, c.source);
   assert.deepEqual(errors, []);
   console.log('Browser smoke checks passed; screenshots saved in artifacts/.');
 } finally {

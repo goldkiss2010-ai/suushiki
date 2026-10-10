@@ -7,7 +7,7 @@ Open /document.html and choose a T01–T07 option from the 「比較例」 menu.
 | Case | Automated checks | Still unverified |
 | --- | --- | --- |
 | T01: formula interior | One indivisible math item, correct source, same single SVG item with measured dimensions | Mathematical font spacing under justified paragraph settings; application does not yet offer justification |
-| T02: boundary spacing | Input ASCII whitespace is preserved; MathJax and Stone do not merge the TeX source | A configurable automatic boundary-spacing rule, outer margin/ink-bound separation, production typography |
+| T02: boundary spacing | Input ASCII whitespace is preserved; selectable none/quarter/contextual outer spacing is measured and corrected at soft line edges | A typographically validated default, MathJax ink-bound separation, justification and production typography |
 | T03: kinsoku and wrapping | Width sweep of punctuation-adjacent nonbreaking math; on composed layouts no reported kinsoku or horizontal overflow | Exhaustive line-breaking optimality and all possible punctuation combinations |
 | T04: tall formula | Fixed/adaptive occupancy comparison; adaptive has no measured line-box overlaps | True glyph-ink collision checks and user-selected minimum line rhythm |
 | T05: layout ownership | Exactly one measured formula SVG, coordinates agree with its rendered DOM bounding rectangle; browser uses the compositor's break positions | Comparing with MathJax's automatic internal line-breaking mode |
@@ -22,7 +22,7 @@ Open /document.html and choose a T01–T07 option from the 「比較例」 menu.
 
 ## What the result means
 
-"Composed" means the **currently implemented policy and diagnostic checks** report a valid candidate. It does not imply that every Japanese or mathematical typographic convention has been implemented. In particular, T02 automatic boundary spacing and T06 finite-height behavior have not been designed or validated as complete features.
+"Composed" means the **currently implemented policy and diagnostic checks** report a valid candidate. It does not imply that every Japanese or mathematical typographic convention has been implemented. In particular, [T02 outer spacing](math-boundary-spacing.md) has a selectable experimental implementation but no established publication-quality default; T06 finite-height behavior remains unimplemented.
 
 A browser smoke pass measures the physical DOM boxes. It does not judge readability, punctuation optical alignment, ink overlaps, complete text accessibility, or visual quality on Windows/macOS. These require additional targeted tests and review. The selected Japanese fallback font is environment-dependent.
 
