@@ -20,6 +20,12 @@ export const collisionCases = {
     source: '関数 \\(f(x)=x^2\\) を考える。',
     expectedFormulaCount: 1,
   },
+  t02d: {
+    label: 'T02d LaTeXの行数比較',
+    focus: '同じ文を2回続け、12文字幅・24文字幅での LuaLaTeX + jlreq の行数と比較します。フォント差があるため一致を合格とはしません。',
+    source: '関数\\(f(x)=x^2\\)を考える。'.repeat(2),
+    expectedFormulaCount: 2,
+  },
   t02c: {
     label: 'T02c 句読点・括弧との境界',
     focus: '読点・括弧と数式の境界を観察します。',
