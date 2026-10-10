@@ -113,8 +113,8 @@ async function refresh() {
   running = true;
   disableActions(true);
   $('document-status').dataset.state = 'busy';
+  let version;
   try {
-    let version;
     do {
       version = requested;
       record = null;
@@ -174,6 +174,8 @@ async function refresh() {
   } finally {
     running = false;
     disableActions(false);
+    // An obsolete rendering error must not swallow input arriving during await.
+    if (version !== requested) void refresh();
   }
 }
 
