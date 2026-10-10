@@ -8,7 +8,7 @@ The initial investigation uses [stone-engine.js](https://github.com/non-standard
 
 SUUSHIKI aims to inherit Stone's design intent, extend Japanese paragraph composition to mathematics, and connect it to a math typesetting engine. Stone's current implementation is a reference for this work, not a compatibility requirement.
 
-> Status: experimental one-formula integration. A general-purpose integrated typesetter is not yet available.
+> Status: experimental one-formula integration plus a structured multi-formula document workbench. A general-purpose integrated typesetter is not yet available.
 
 ## Run the first experiment
 
@@ -19,9 +19,9 @@ npm ci
 npm run dev
 ```
 
-Open `http://127.0.0.1:5173/`. The page displays Stone text and six MathJax formulas separately, a measured placeholder box, and an actual selected formula inside a Japanese paragraph. It allows changes to width/font/size and box dimensions, compares adaptive and fixed line advance, repairs illegal boundary breaks using Stone’s own line-edge punctuation geometry, copies prose with inline LaTeX or formula TeX alone, and exports geometry as JSON. Stop the server with Ctrl+C. No build step is required. Run `npm test` for the adapter and boundary checks.
+Open `http://127.0.0.1:5173/` for the original single-formula checks, and [`http://127.0.0.1:5173/document.html`](http://127.0.0.1:5173/document.html) for editable multi-formula paragraphs. The page displays Stone text and six MathJax formulas separately, a measured placeholder box, and an actual selected formula inside a Japanese paragraph. It allows changes to width/font/size and box dimensions, compares adaptive and fixed line advance, repairs illegal boundary breaks using Stone’s own line-edge punctuation geometry, copies prose with inline LaTeX or formula TeX alone, and exports geometry as JSON. Stop the server with Ctrl+C. No build step is required. Run `npm test` for the adapter and boundary checks.
 
-See [環境構築と実行手順 (Windows / PowerShell)](docs/getting-started.md), [standalone verification](docs/standalone-check.md), [placeholder integration](docs/inline-box-check.md), [actual formula integration](docs/inline-math-check.md), and [boundary constraint checks](docs/collision-check.md). One nonbreaking MathJax formula can participate in Japanese line breaking. Narrow punctuation/bracket cases search for a legal partition and report unmet constraints if none is found; a formula wider than the column preserves its source and reports insufficient width. See [prototype completion checks](docs/prototype-check.md) for the bounded repair and copy scope. The full seven-case collision suite remains to be evaluated.
+See [複数数式ワークベンチの確認手順](docs/document-workbench.md), [環境構築と実行手順 (Windows / PowerShell)](docs/getting-started.md), [standalone verification](docs/standalone-check.md), [placeholder integration](docs/inline-box-check.md), [actual formula integration](docs/inline-math-check.md), and [boundary constraint checks](docs/collision-check.md). The multi-formula workbench preserves hard breaks, blank lines and repeated expressions; it exposes source parsing errors, word policy, nonbreaking math, measured line geometry and JSON diagnostics. Width-only reflows reuse cached formula measurements; fontsize/font changes remeasure. One nonbreaking MathJax formula can participate in Japanese line breaking. Narrow punctuation/bracket cases search for a legal partition and report unmet constraints if none is found; a formula wider than the column preserves its source and reports insufficient width. See [prototype completion checks](docs/prototype-check.md) for the bounded repair and copy scope. The full seven-case collision suite and manual browser evaluation of the new multi-formula page remain to be completed.
 
 ## Why
 

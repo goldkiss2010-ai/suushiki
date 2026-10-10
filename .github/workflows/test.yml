@@ -1,0 +1,53 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: suushiki-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Syntax check browser modules
+        run: |
+          node --check public/document-source.js
+          node --check public/document-layout.js
+          node --check public/document-render.js
+          node --check public/document-workbench.js
+
+  browser:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Install isolated browser test tools
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.1
+          npx playwright install --with-deps chromium
+      - run: node scripts/browser-smoke.mjs
+      - name: Preserve screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: suushiki-document-screenshots
+          path: artifacts/*.png
+          if-no-files-found: ignore
+          retention-days: 7

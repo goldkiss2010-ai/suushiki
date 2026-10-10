@@ -1,0 +1,15 @@
+.document-viewport { min-height: 80px; background: #fff; }
+.document-canvas > svg:first-child { display: block; }
+.document-math-frame { border: 1px solid #347ac6; box-sizing: border-box; }
+.document-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+#document-status[data-state="error"] { color: #9a4200; font-weight: 600; }
+#document-output { max-width: none; }
+#document-source { font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; line-height: 1.6; }
+#document-copy-source { font-family: ui-monospace, Consolas, monospace; }
+#document-diagnostic { line-height: 1.6; }
+nav { font-size: 14px; }
+@media (max-width: 640px) {
+  main { padding: 12px; }
+  section { padding: 14px; }
+  .document-actions button { width: 100%; }
+}
