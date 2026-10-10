@@ -118,12 +118,20 @@ export async function runLineEdgeSweep(page) {
       JSON.stringify(row.suushiki.breaks));
     const stoneRepair = comparable.filter(row => JSON.stringify(row.stone.breaks) !==
       JSON.stringify(row.suushiki.breaks));
+    const nativeOnly = selected.filter(row => row.native.status === 'measured' &&
+      row.native.violations.length > 0 && row.suushiki.status === 'composed' &&
+      row.suushiki.violations.length === 0);
+    const repairedAgainstStone = selected.filter(row =>
+      row.stone.status === 'constraint-conflict' && row.suushiki.status === 'composed' &&
+      row.suushiki.violations.length === 0);
     summary.byFixtureAndMode.push({
       caseId: key, mode, comparableWidths: comparable.length,
       nativeMeasuredWidths: selected.filter(row => row.native.status === 'measured').length,
       nativeProbeIssueWidths: nativeIssues.map(row => row.widthPx),
       stoneProbeIssueWidths: stoneIssues.map(row => row.widthPx),
       suushikiProbeIssueWidths: suushikiIssues.map(row => row.widthPx),
+      browserIssueWhileSuushikiComposedWidths: nativeOnly.map(row => row.widthPx),
+      stoneConflictResolvedBySuushikiWidths: repairedAgainstStone.map(row => row.widthPx),
       browserVsSuushikiBreakDifferenceWidths: breaksDiffer.map(row => row.widthPx),
       stoneVsSuushikiBreakDifferenceWidths: stoneRepair.map(row => row.widthPx),
       examples: [...nativeIssues, ...stoneRepair, ...breaksDiffer].filter((row, i, a) =>
@@ -131,6 +139,32 @@ export async function runLineEdgeSweep(page) {
         .slice(0, 4),
     });
   }
+  // Save real layout screenshots at important transitions so that source-
+  // offset probes can be checked visually rather than treated as truth.
+  for (const { caseId, widthPx } of [
+    { caseId: 't03b', widthPx: 125 },
+    { caseId: 't03b', widthPx: 160 },
+    { caseId: 't02c', widthPx: 150 },
+    { caseId: 't03a', widthPx: 157 },
+  ]) {
+    await page.locator('#document-example').selectOption(caseId);
+    await page.locator('#document-width').evaluate((el, width) => {
+      el.value = String(width);
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    }, widthPx);
+    await page.waitForFunction(({ source, width }) => {
+      const status = document.getElementById('document-status');
+      const raw = document.getElementById('document-metrics').textContent;
+      if (status.dataset.state !== 'ready' || !raw) return false;
+      const data = JSON.parse(raw);
+      return data.source === source && data.settings.width === width &&
+        data.edgeComparison?.native?.status === 'measured';
+    }, { source: collisionCases[caseId].source, width: widthPx }, { timeout: 30000 });
+    await page.locator('.document-comparison-grid').screenshot({
+      path: 'artifacts/suushiki-edge-' + caseId + '-' + widthPx + '.png',
+    });
+  }
+
   const exported = {
     schemaVersion: 1, measuringSystem: 'Chromium / DOM Range, math baseline',
     note: 'Shared Stone kinsoku probe classifications do not establish JLREQ compliance. ' +
