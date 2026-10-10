@@ -19,6 +19,7 @@ The project initially targets **horizontal Japanese prose with inline mathematic
 - **Reuse existing engines.** Do not reimplement Japanese or mathematical typesetting unnecessarily.
 - **Separate composition from rendering.** SVG is useful for inspection but not a mandatory output format.
 - **Keep semantics.** Preserve source text and mathematical expressions rather than treating all formulas as opaque pictures.
+- **Parameterize choices; investigate collisions.** Author and publication styles remain configurable. Preserve Stone's Japanese composition rules and adjust the connection to math where constraints compete.
 - **Measure before modifying.** Investigate the actual APIs and limitations of both dependencies before forking.
 - **Compare visually and mechanically.** Use reference HTML + MathJax alongside the experimental output.
 
@@ -41,6 +42,8 @@ See [docs/architecture.md](docs/architecture.md), [docs/research-plan.md](docs/r
 The initial [research collection (日本語)](docs/math-typesetting/README.md) records 18 source entries, 39 rules and choices, and 32 comparison inputs.
 
 It distinguishes engine algorithms, font metrics, Japanese composition requirements and publication conventions. Each source has an explicit verification status; the comparison inputs have not yet been rendered or measured.
+
+The next investigation focuses on [seven collision patterns](docs/math-typesetting/decisions.md), with [seven targeted inputs](examples/math-conflicts.md). [Stone's design and constraints](docs/math-typesetting/stone-engine.md) are recorded against a fixed upstream commit. Style variants are parameter choices, not collision counts. Integrated behavior remains untested.
 
 ## Scope and output formats
 

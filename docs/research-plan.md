@@ -8,6 +8,21 @@ It separates source-backed rules from SUUSHIKI design proposals and includes
 not executed tests. Source collection does not satisfy the implementation or
 visual evaluation gates below.
 
+## Current focus — preserve Stone, isolate collisions
+
+Treat author and publication conventions as parameters. Investigate only the
+[seven collision patterns](math-typesetting/decisions.md), using
+[T01–T07](../examples/math-conflicts.md). Preserve Stone's punctuation, kinsoku,
+word handling, baseline and justification rules while connecting measured math.
+
+[Upstream inspection](math-typesetting/stone-engine.md) records the original design
+and the JavaScript implementation at commit
+`79a07777bcec540d94c5bd5304a68e427a1f49e6` (package version declaration `0.2.0`).
+Coordinates and run placement are exposed; the high-level text API has no external
+inline-box argument. This is a source inspection, not a working integration.
+MathJax dimensions and an actual insertion procedure remain unresolved, so Gate 0
+is not complete.
+
 ## Gate 0 — Inspect upstream (no implementation assumptions)
 
 - Record exact upstream versions, licenses and dependency constraints.
@@ -15,6 +30,9 @@ visual evaluation gates below.
 - Check whether line-breaking operates on characters, glyph runs or generic inline items.
 - Determine how MathJax exposes rendered dimensions, baseline and accessibility information.
 - Write down a reproducible local run procedure.
+- Check that a candidate box retains its width, baseline, height and source mapping
+  through remeasurement, punctuation processing, kinsoku and relayout. A single
+  token or a manually adjusted placeholder width alone is not sufficient.
 
 **Exit condition:** identify an insertion point for an inline math box, or explicitly document why none exists.
 
@@ -40,6 +58,9 @@ Compare against the reference with a typography reviewer. Classify each discrepa
 - deliberate stylistic choice
 
 Do not label a visual difference an error without an explicit rule or criterion.
+Record which fixed constraints compete. Distinguish an adapter defect from a case
+that cannot fit under the selected width, line height or nonbreaking policy.
+Style variants alone do not count as collisions.
 
 ## Defer
 

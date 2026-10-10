@@ -68,4 +68,4 @@ S17・S18 から条文や細かな空き量を推定しない。ISO 系の書体
 - S01 の分数・根号・添え字の計算と、S05 の対応アルゴリズムを必要な構造ごとに比較する。
 - S11・S12 の全文と版を確定する。出版方針の比較範囲を拡張する。
 - S17・S18 は必要な章を閲覧できた時点で本文確認に進める。
-- stone-engine.js の受入れ可能な inline item と MathJax の寸法 API は、[Gate 0](../research-plan.md) で別途調べる。本資料集では未検証。
+- stone-engine.js は [固定コミットの実装確認](stone-engine.md) を追加した。文字列の公開入口に外部 inline box を渡す引数は見当たらないが、内部の配置データは公開されている。接続の実証と MathJax の寸法 API は [Gate 0](../research-plan.md) の残りの調査対象。
