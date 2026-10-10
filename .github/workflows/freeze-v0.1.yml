@@ -1,0 +1,73 @@
+name: Freeze SUUSHIKI v0.1 evidence
+
+on:
+  pull_request:
+    paths:
+      - 'docs/research/v0.1-freeze.md'
+      - 'scripts/freeze-v0.1.py'
+      - '.github/workflows/freeze-v0.1.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/research/v0.1-freeze.md'
+
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Recover three original completed experiment runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download 38091544273 -R "$GITHUB_REPOSITORY" -n suushiki-document-screenshots -D build/v0.1/01-fourway
+          gh run download 38092208319 -R "$GITHUB_REPOSITORY" -n suushiki-document-screenshots -D build/v0.1/02-line-edge
+          gh run download 38093345109 -R "$GITHUB_REPOSITORY" -n suushiki-document-screenshots -D build/v0.1/03-css-isolation
+      - name: Validate original SHA-256 and preserve screenshots
+        run: |
+          set -euo pipefail
+          python3 scripts/freeze-v0.1.py
+          python3 -m zipfile -t dist/SUUSHIKI-v0.1-evidence.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: suushiki-v0.1-research-evidence
+          path: dist/SUUSHIKI-v0.1-*
+          retention-days: 7
+          if-no-files-found: error
+
+  publish:
+    needs: evidence
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: suushiki-v0.1-research-evidence
+          path: dist
+      - name: Publish the immutable-in-intent research snapshot
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view v0.1 -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo 'v0.1 already exists; do not rewrite a frozen record.'
+            exit 0
+          fi
+          gh release create v0.1 \
+            dist/SUUSHIKI-v0.1-evidence.zip \
+            dist/SUUSHIKI-v0.1-manifest.json \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title 'SUUSHIKI v0.1 — 日本語数式組版の既知事例調査' \
+            --notes-file docs/research/v0.1-freeze.md \
+            --latest=false
+          gh release view v0.1 -R "$GITHUB_REPOSITORY"
