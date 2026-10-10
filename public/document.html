@@ -118,6 +118,11 @@
     <p class="note">4系統とも原文・文字サイズ・幅・数式ソースを共有します。「式内改行を許す」だけはMathJaxをその設定で別途組版します。Stone候補はSUUSHIKIの測定アダプターを使い、禁則修復や可変行高を加えない対照で、Stone単体そのものではありません。</p>
     <pre id="document-native-diagnostic" aria-live="polite"></pre>
     <pre id="document-fourway-diagnostic" aria-live="polite"></pre>
+    <details>
+      <summary>行頭・行末の位置を比較（禁則プローブ）</summary>
+      <pre id="document-edge-diagnostic" aria-live="polite"></pre>
+      <p class="note">通常HTMLの本文の各文字をDOM Rangeで測定し、数式の実測基線と突き合わせます。Stoneの禁則文字集合を共通の観察基準として適用します。これはJLREQ準拠の判定ではなく、MathJax式内改行ありの列は行境界判定の対象外です。</p>
+    </details>
     <p class="note">HTML側の描画は直接テキストを含むため選択できます。SUUSHIKI側は検証用SVGで、原文コピーは下の欄から行います。固定行送りでの重なりは警告として残します。</p>
     <div class="document-actions">
       <button id="document-copy" type="button" disabled>原文をコピー</button>

@@ -5,6 +5,7 @@ import { spawn } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { collisionCases, collisionCaseKeys } from '../public/collision-cases.js';
+import { runLineEdgeSweep } from './browser-edge-sweep.mjs';
 
 const base = 'http://127.0.0.1:5173';
 const server = spawn(process.execPath, ['scripts/serve.mjs'], {
@@ -444,8 +445,9 @@ try {
     nativeFlowable: [row.htmlFlowable.fragmentCount, row.htmlFlowable.horizontalOverflow],
   }))));
 
+  await runLineEdgeSweep(page);
   assert.deepEqual(errors, []);
-  console.log('Browser smoke checks passed; screenshots and matrix saved in artifacts/.');
+  console.log('Browser smoke checks passed; screenshots and matrices saved in artifacts/.');
 } finally {
   if (browser) await browser.close();
   server.kill();
