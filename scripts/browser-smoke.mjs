@@ -6,6 +6,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { collisionCases, collisionCaseKeys } from '../public/collision-cases.js';
 import { runLineEdgeSweep } from './browser-edge-sweep.mjs';
+import { runCssIsolation } from './browser-css-isolation.mjs';
 
 const base = 'http://127.0.0.1:5173';
 const server = spawn(process.execPath, ['scripts/serve.mjs'], {
@@ -446,6 +447,7 @@ try {
   }))));
 
   await runLineEdgeSweep(page);
+  await runCssIsolation(page);
   assert.deepEqual(errors, []);
   console.log('Browser smoke checks passed; screenshots and matrices saved in artifacts/.');
 } finally {
