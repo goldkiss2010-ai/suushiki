@@ -1,5 +1,8 @@
 # SUUSHIKI 四系統比較：最初の観察結果
 
+> **資料の位置付け**：これは当時の四系統比較の一次実験メモです。現在の日本語で検索可能な調査記録は[行高・幅不足の解説](research/02-line-height-and-overflow.md)と[根拠・再現手順](research/05-method-and-evidence.md)です。以下の「次の調査」は当時の検討事項であり、現在の開発方針ではありません。
+
+
 測定：Chromium 140.0.7339.186（Playwright 1.55.1 CI）、ブラウザー文字サイズ20px、
 横幅160/240/480px。2026-10-11。
 原文は public/collision-cases.js の各 T ケース。最新CSS実験モード、

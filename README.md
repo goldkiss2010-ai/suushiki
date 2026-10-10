@@ -1,87 +1,67 @@
 # SUUSHIKI / 数式
 
-**Japanese mathematical typesetting, built on existing layout engines.**
+**日本語と数式の組版で起こる既知の衝突を、出典・実験条件・測定結果・未確認事項とともに日本語で残す調査プロジェクト。**
 
-SUUSHIKI is an experimental project exploring how professional Japanese text composition can coexist with mathematical notation in a single horizontal layout.
+主目的は新しい組版エンジンやサービスの開発ではありません。日本語本文に行内数式を挿入したとき、既存のHTML/CSS、MathJax、Stone、LuaLaTeXなどで何が起こるかを整理し、同じ問題を後から調べる人が日本語で検索して到達できる**参照可能な調査記録**を作ることです。
 
-The initial investigation uses [stone-engine.js](https://github.com/non-standardworld/stone_engine_js) for Japanese typography and [MathJax](https://github.com/mathjax/MathJax) for mathematics. Neither the final architecture nor the renderer is fixed.
+現時点では、すでに整理した7種類の問題（K01〜K07 / T01〜T07）の範囲に集中します。新しい衝突を探したり、検出件数を増やしたりすることは目的にしていません。SUUSHIKIの実装は、記録に必要な既知の入力を再表示・比較・測定するための道具です。
 
-SUUSHIKI aims to inherit Stone's design intent, extend Japanese paragraph composition to mathematics, and connect it to a math typesetting engine. Stone's current implementation is a reference for this work, not a compatibility requirement.
+## 日本語の調査記録を読む
 
-> Status: experimental one-formula integration plus a structured multi-formula document workbench. A general-purpose integrated typesetter is not yet available.
+**[日本語調査記録の総合入口：既知の問題・用語・確定事項・未検証事項](docs/research/README.md)**
 
-## Run the first experiment
+| 探している問題・キーワード | 日本語解説 |
+| --- | --- |
+| **数式の直後に句点が行頭に来る／括弧だけが行末に残る／禁則処理／MathJax／atomic inline／CSS inline-block／nowrap** | [数式と日本語の禁則・括弧の実測と原因分離](docs/research/01-kinsoku-atomic-inline.md) |
+| **分数の高さ／数式のベースライン／行送り／行ボックスの重複／長い数式の折り返し／MathJax 4の式内改行／横はみ出し** | [高い数式・式内改行・幅不足の実測](docs/research/02-line-height-and-overflow.md) |
+| **本文と数式の空白／和欧文のアキ／約物詰め／四分アキ／xkanjiskip／LuaLaTeX／jlreq／TeX** | [数式内部と本文の境界・アキの実測](docs/research/03-math-boundary-spacing.md) |
+| **数式SVGとコピー／TeX原文の保存／読み上げ／選択／MathML／アクセシビリティ** | [ソース保存・意味・アクセシビリティの確認範囲](docs/research/04-source-and-accessibility.md) |
+| **再現手順／Chromium／Playwright／検証コード／測定環境／JSON／証拠の出典** | [実験条件・実行記録・データの証拠](docs/research/05-method-and-evidence.md) |
 
-Install Node.js 24 LTS, clone this repository, then run in its root:
+[収集した既存資料18件](docs/math-typesetting/sources.md)と[39項目のルール](docs/math-typesetting/rules.md)、[32件の未全面検証の入力候補](examples/math-typesetting-cases.md)も公開しています。出典の確認範囲を区別し、検証していないことを検証済みと書かない方針です。
 
-```sh
+## これまでの主要な実測
+
+- 日本語の句点・括弧と行内数式の接点：**1,026条件**の行端位置を測定し、禁則プローブに引っかかる幅を記録。
+- 素の文字／同寸法のCSS inline-block／MathJax数式／nowrap等の切り分け：**2,944条件**。MathJaxだけが問題を起こすとはいえず、atomic inline周辺の改行機会が説明候補になった。
+- 高い分数の固定行送りと可変行送り、長い数式の内部改行：**12条件**の4系統比較。MathJaxの既存の行内数式改行が、SUUSHIKIの非分割方式より有利な例も保存。
+- LuaLaTeX＋jlreq：**具体的なTeXバージョン・原稿・数値付きの実測**を保存。WebのCSS emとTeXのzw/ptを同一視しない。
+
+これらは独立した「4,000件のバグ」ではありません。固定した文章・文字サイズで幅や処理方法を変えた反復観測です。また、通常HTMLとの差は直ちにブラウザーバグやJLREQ違反を意味しません。[実測をどう解釈すべきか](docs/research/05-method-and-evidence.md)を併せて参照してください。
+
+## 実験器具の実行（開発は主目的ではありません）
+
+Node.js 24と、npmが使用できる環境でリポジトリのルートから実行します。
+
+```powershell
 npm ci
+npm test
 npm run dev
 ```
 
-Open `http://127.0.0.1:5173/` for the original single-formula checks, and [`http://127.0.0.1:5173/document.html`](http://127.0.0.1:5173/document.html) for editable multi-formula paragraphs. The page displays Stone text and six MathJax formulas separately, a measured placeholder box, and an actual selected formula inside a Japanese paragraph. It allows changes to width/font/size and box dimensions, compares the result with native HTML + CSS + MathJax, compares adaptive and fixed line advance, repairs illegal boundary breaks using Stone’s own line-edge punctuation geometry, copies prose with inline LaTeX or formula TeX alone, and exports geometry as JSON. Stop the server with Ctrl+C. No build step is required. Run `npm test` for the adapter and boundary checks.
+ブラウザーで **http://127.0.0.1:5173/document.html** を開きます。既存のT01〜T07入力を選び、表示幅・日本語約物・数式の外側のアキ・行送り・MathJaxの折返し・CSS atomic inlineを比較します。原文と幾何情報をJSONへ保存できます。単一数式の初期実験は http://127.0.0.1:5173/ です。終了は実行中のPowerShellでCtrl+C。
 
-See [CSSのインライン要素・禁則切り分け実測](docs/css-atomic-isolation.md), [行頭・行末の1pxスイープ実測](docs/line-edge-sweep.md), [四系統の実測結果](docs/four-way-first-findings.md), [四系統比較：通常HTML・MathJax式内改行・Stone候補・SUUSHIKI](docs/four-way-comparison.md), [通常HTML + MathJax との並列比較](docs/native-html-comparison.md), [LuaLaTeX / jlreq の実測比較](docs/latex-benchmark.md), [T02: 数式境界の自動アキ比較](docs/math-boundary-spacing.md), [T01–T07 の実行可能な衝突テストと未確認項目](docs/collision-matrix.md), [複数数式ワークベンチの確認手順](docs/document-workbench.md), [環境構築と実行手順 (Windows / PowerShell)](docs/getting-started.md), [standalone verification](docs/standalone-check.md), [placeholder integration](docs/inline-box-check.md), [actual formula integration](docs/inline-math-check.md), and [boundary constraint checks](docs/collision-check.md). The multi-formula workbench preserves hard breaks, blank lines and repeated expressions; it exposes source parsing errors, word policy, nonbreaking math, measured line geometry and JSON diagnostics. Width-only reflows reuse cached formula measurements; fontsize/font changes remeasure. One nonbreaking MathJax formula can participate in Japanese line breaking. Narrow punctuation/bracket cases search for a legal partition and report unmet constraints if none is found; a formula wider than the column preserves its source and reports insufficient width. See [prototype completion checks](docs/prototype-check.md) for the bounded repair and copy scope. The T01–T07 collision inputs are executable in the browser and have layout invariants tested in Node and Chromium. This does not mean every typography policy is implemented: production-quality boundary spacing and actual glue stretching, finite-height truncation, full accessibility and cross-platform visual review remain open.
+[Windows PowerShellでのセットアップ](docs/getting-started.md)、[ワークベンチの操作方法](docs/document-workbench.md)、[テスト対象と未実装事項](docs/collision-matrix.md)、[CIによる実測の根拠](docs/research/05-method-and-evidence.md)。
 
-## Why
+## 調査上の前提と限界
 
-MathJax can typeset mathematical expressions, while stone-engine.js explores fine-grained Japanese composition. The interesting question is not how to paste a formula beside a paragraph, but how to make both participate in one line-layout decision: dimensions, baseline, spacing, line breaking and alignment.
+SUUSHIKIは**日本語・数式の一体組版の完成品ではありません**。現行の検証描画にはSVGが多く、読み上げ、全文章の直接選択、数学軸・グリフインクの厳密比較、全プラットフォームでの文字組み、有限高さの省略・縮小、出版品質の判定などは保証していません。
 
-The project initially targets **horizontal Japanese prose with inline mathematics**. Vertical writing, full-page layout, publishing formats and interactive editing are out of scope for the first experiment.
+比較に用いた「Stone候補」は、Stoneの日本語組版をSUUSHIKIの計測済み数式アダプターに接続した条件です。Stoneの独立した動作やStoneに欠陥があることを直接示すものではありません。また、MathJaxが既に持つ行内数式改行などの機能は、欠点を隠さず対照として記録します。
 
-## Design principles
+現在の活動は**既知の問題の事実関係・出典・環境・測定の限界を明瞭にすること**であって、未知の衝突の探索・外部へのIssue報告・製品ロードマップの作成ではありません。
 
-- **Reuse existing engines.** Do not reimplement Japanese or mathematical typesetting unnecessarily.
-- **Separate composition from rendering.** SVG is useful for inspection but not a mandatory output format.
-- **Keep semantics.** Preserve source text and mathematical expressions rather than treating all formulas as opaque pictures.
-- **Inherit Stone's design intent.** Carry forward fine-grained Japanese composition, responsive layout, inspectable geometry and efficient relayout. APIs, item types, line metrics and break handling may evolve to support mathematics.
-- **Parameterize choices; investigate collisions.** Author and publication styles remain configurable. Evaluate competing constraints under the selected policy; record intentional departures from the upstream behavior.
-- **Measure before modifying.** Investigate the actual APIs and limitations of both dependencies before forking.
-- **Compare visually and mechanically.** Use reference HTML + MathJax alongside the experimental output.
+## 依存・謝辞・ライセンス
 
-## First milestone: one paragraph
+本プロジェクトは独立した非公式の実験記録であり、以下の公式プロジェクトから承認・支援されているものではありません。
 
-Render a short Japanese paragraph containing a single inline formula, with a controlled font and width. Record:
+- [stone-engine.js](https://github.com/non-standardworld/stone_engine_js) — npm 0.2.0、MIT
+- [MathJax](https://github.com/mathjax/MathJax) — npm 4.1.3、Apache-2.0
+- MathJax New Computer Modern font 4.1.3 — Apache-2.0
+- [W3C JLREQ](https://www.w3.org/TR/jlreq/)／[CSS Text Level 3](https://www.w3.org/TR/css-text-3/) — 日本語組版要件・CSS仕様の参照
 
-1. How each engine measures its content.
-2. How to connect a measured math item to paragraph composition, including any needed extension to Stone's item or line model.
-3. How baselines and the mathematical axis can be aligned.
-4. What happens when a formula approaches the end of a line.
-5. Whether the same layout decisions can be represented independently of SVG.
+依存ライブラリの正確な固定版はpackage-lock.jsonへ。引用・再配布時は原資料・プログラム・フォントそれぞれの権利表示を確認してください。
 
-A nonbreaking formula box is acceptable in the first prototype. Breaking *inside* mathematics is a later problem.
+**リポジトリ独自のライセンスは未選択**です。依存ライブラリがMIT等であることを理由に、このリポジトリ全体を同じ条件で再利用できるとみなさないでください。
 
-See [docs/architecture.md](docs/architecture.md), [docs/research-plan.md](docs/research-plan.md) and [examples/fixtures.md](examples/fixtures.md).
-
-## Existing mathematical typesetting rules
-
-The initial [research collection (日本語)](docs/math-typesetting/README.md) records 18 source entries, 39 rules and choices, and 32 comparison inputs.
-
-It distinguishes engine algorithms, font metrics, Japanese composition requirements and publication conventions. Each source has an explicit verification status; the full 32-case comparison suite has not yet been run.
-
-The investigation focuses on [seven collision patterns](docs/math-typesetting/decisions.md), with [seven targeted inputs](examples/math-conflicts.md). [Stone's design and constraints](docs/math-typesetting/stone-engine.md) are recorded against a fixed upstream commit. Style variants are parameter choices, not collision counts. Preliminary one-formula integration checks are linked above; the executable T01–T07 probes test selected invariants, not complete typographic quality.
-
-The current direction is design inheritance with extension and connection. Exact upstream behavior, including constant line advance, is not an invariant of SUUSHIKI.
-
-## Scope and output formats
-
-Browser output is the first target. HTML, SVG or Canvas are rendering options, not architectural commitments. EPUB/Kindle reflow is a separate compatibility problem: arbitrary JavaScript-driven layout cannot be assumed to run inside an ebook reader.
-
-## Dependencies and attribution
-
-SUUSHIKI is an **independent, unofficial experiment**, not an official stone-engine.js extension.
-
-- [stone-engine.js](https://github.com/non-standardworld/stone_engine_js) — npm 0.2.0, MIT. This harness uses its public layout, Canvas measurement and SVG APIs.
-- [MathJax](https://github.com/mathjax/MathJax) — npm 4.1.3, Apache-2.0. This harness uses TeX-to-SVG conversion and browser geometry.
-- MathJax New Computer Modern font — dependency 4.1.3, Apache-2.0; exact dependency versions and integrity hashes are recorded in `package-lock.json`.
-
-Any copied or redistributed source, fonts, examples or bundled assets must retain the applicable notices. This repository does not currently vendor either engine; npm-installed packages retain their upstream notices.
-
-## Contributing
-
-The most useful early contributions are small reproducible layout cases, documentation of actual engine behavior, and reviews of Japanese spacing, punctuation, and mathematical baseline alignment.
-
-## License
-
-**Not yet selected.** Do not assume this repository is MIT-licensed merely because one or more upstream dependencies may use permissive licenses.
-
+過去の実装方針と開発計画はGit履歴、および[当初の研究計画](docs/research-plan.md)、[技術仮説](docs/architecture.md)に保存しています。これらは今の目標を定める文書ではありません。
