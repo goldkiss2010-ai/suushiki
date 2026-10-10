@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SUUSHIKI — 複数数式の組版</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/document.css">
+  <script src="/mathjax-config.js"></script>
+  <script defer src="/vendor/mathjax/tex-svg.js"></script>
+  <script type="importmap">{"imports":{"@non-standardworld/stone-engine.js":"/vendor/stone/index.js"}}</script>
+  <script type="module" src="/document-workbench.js"></script>
+</head>
+<body>
+<main>
+  <nav><a href="/">単一数式の検証</a> / 複数数式の組版</nav>
+  <h1>SUUSHIKI — 文章と複数の数式</h1>
+  <p>原文を保ったまま、複数の MathJax 数式と和文を一つの組版処理に通します。数式は <code>\( … \)</code> で記述してください。</p>
+  <p id="document-status" role="status">MathJax を読み込んでいます…</p>
+  <section>
+    <h2>原文</h2>
+    <label for="document-example">比較例</label>
+    <select id="document-example">
+      <option value="mixed">数式の混在・段落・空行</option>
+      <option value="boundaries">句読点と括弧の境界</option>
+      <option value="long">10段落（再配置負荷）</option>
+      <option value="oversize">幅を超える数式</option>
+    </select>
+    <label for="document-source">数式を含む文章</label>
+    <textarea id="document-source" rows="9" spellcheck="false"></textarea>
+    <p class="note">改行は保持されます。数式の開始・終了記号が不正な場合は位置を示し、描画は更新しません。</p>
+  </section>
+  <section>
+    <h2>組版条件</h2>
+    <div class="settings">
+      <label>組版幅
+        <input id="document-width" type="range" min="80" max="720" step="1" value="480">
+        <output id="document-width-value">480 px</output>
+      </label>
+      <label>文字サイズ
+        <select id="document-font-size"><option>17</option><option selected>20</option><option>24</option></select>
+      </label>
+      <label>書体
+        <select id="document-font"><option value="sans-serif">OS 標準ゴシック</option><option value="serif">OS 標準明朝</option></select>
+      </label>
+      <label>行の高さ
+        <select id="document-line-policy"><option value="adaptive">内容に合わせる</option><option value="fixed">Stone の固定行送り</option></select>
+      </label>
+      <label>行分割
+        <select id="document-boundary-policy"><option value="repair">制約を考慮する</option><option value="stone">Stone の候補を観察</option></select>
+      </label>
+      <label>欧文単語
+        <select id="document-word-policy"><option value="preserve">単語の途中で分割しない</option><option value="break">分割を許す</option></select>
+      </label>
+      <label>制約衝突時
+        <select id="document-conflict-policy"><option value="inspect">候補を観察</option><option value="withhold">描画を保留</option></select>
+      </label>
+      <label><input id="document-frames" type="checkbox"> 文字・数式の枠</label>
+      <label><input id="document-baselines" type="checkbox"> ベースライン</label>
+    </div>
+  </section>
+  <section>
+    <h2>組版プレビュー</h2>
+    <p id="document-diagnostic" role="status"></p>
+    <div class="viewport document-viewport"><div id="document-output" aria-hidden="true"></div></div>
+    <p class="note">描画は検証用です。文章・数式のコピーは下の原文から行います。固定行送りでの領域重なりは警告として残します。</p>
+    <div class="document-actions">
+      <button id="document-copy" type="button" disabled>原文をコピー</button>
+      <button id="document-copy-math" type="button" disabled>すべての数式 TeX をコピー</button>
+      <button id="document-export" type="button" disabled>配置記録を JSON で保存</button>
+    </div>
+    <p id="document-copy-status" role="status"></p>
+    <label for="document-copy-source">コピー用原文</label>
+    <textarea id="document-copy-source" rows="4" readonly></textarea>
+    <details>
+      <summary>測定値・制約診断を表示</summary>
+      <pre id="document-metrics"></pre>
+    </details>
+  </section>
+  <p class="note">実験段階：横書き・左寄せ・数式内部は改行しない方針です。MathML / 読み上げ / PDF は未対応です。</p>
+</main>
+</body>
+</html>
