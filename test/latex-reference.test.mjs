@@ -50,6 +50,8 @@ test('TeX parser validates dimensions, flexible glue and paragraph tags', () => 
 test('captured real LuaLaTeX log reproduces the committed numeric baseline', () => {
   const log = readFileSync(new URL('../benchmarks/latex/reference-log.txt', import.meta.url), 'utf8');
   const parsed = parseLatexLog(log);
+  const withLatexLogSuffix = log.trimEnd().replace(/163840$/, '163840 (./reference.aux)');
+  assert.deepEqual(parseLatexLog(withLatexLogSuffix).paragraphs, reference.paragraphs);
   assert.deepEqual(parsed.parameters, reference.parameters);
   assert.deepEqual(parsed.hboxesPt, reference.hboxesPt);
   assert.deepEqual(parsed.partsPt, reference.partsPt);
