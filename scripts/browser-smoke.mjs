@@ -454,6 +454,7 @@ try {
     el.value = '125';
     el.dispatchEvent(new Event('input', { bubbles: true }));
   });
+  await page.locator('#document-isolation-experiment').evaluate(el => { el.open = true; });
   await page.locator('#document-isolation-linebreak').selectOption('strict');
   await page.locator('#document-isolation-variant').selectOption('mathjax');
   await page.waitForFunction(() => {
