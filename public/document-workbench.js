@@ -5,10 +5,12 @@ import { mountDocument } from './document-render.js';
 import { collisionCases } from './collision-cases.js';
 import { compareWithLatex, comparisonText } from './latex-compare.js';
 import { mountNativeComparison, measureNativeComparison, nativeComparisonSummary } from './native-comparison.js';
+import { typesetFlowableMath } from './mathjax-flow.js';
 
 const $ = id => document.getElementById(id);
 const measurer = getSharedCanvasMeasurer();
 const measurements = new Map();
+const flowMeasurements = new Map();
 let latexReference = null;
 const round = n => Math.round(n * 1000) / 1000;
 let requested = 0;
@@ -137,12 +139,24 @@ async function refresh() {
       const boxes = new Map();
       const svgById = new Map();
       const mathById = new Map();
+      const flowById = new Map();
+      const flowDetails = [];
       for (const item of items) {
         if (item.type !== 'math') continue;
         const measured = await measure(item.tex, config);
         boxes.set(item.id, measured.box);
         svgById.set(item.id, measured.svg);
         mathById.set(item.id, measured.math);
+        const flowKey = JSON.stringify([
+          item.tex, config.fontSize, config.family, config.width, window.devicePixelRatio,
+        ]);
+        let flow = flowMeasurements.get(flowKey);
+        if (!flow) {
+          flow = await typesetFlowableMath(item.tex, config);
+          flowMeasurements.set(flowKey, flow);
+        }
+        flowById.set(item.id, flow.math);
+        flowDetails.push({ id: item.id, svgFragments: flow.svgCount });
       }
       measurer.invalidate();
       const options = {
@@ -160,17 +174,53 @@ async function refresh() {
         boundarySpacing: config.boundarySpacing,
       });
       if (version !== requested) continue;
+      // Stone's original break candidate and fixed line advance, but the
+      // measured math marker itself is supplied by the SUUSHIKI adapter.
+      const stoneControl = layoutDocument({
+        items, boxes, width: config.width, options, measurer,
+        policy: 'fixed', boundaryPolicy: 'stone', conflictPolicy: 'inspect',
+        wordPolicy: 'break', boundarySpacing: 'none',
+      });
+      const stonePreview = mountDocument(stoneControl, svgById, config);
+      $('document-stone-output').replaceChildren(...(stonePreview ? [stonePreview] : []));
       const preview = mountDocument(result, svgById, config);
       $('document-output').replaceChildren(...(preview ? [preview] : []));
       const nativeElement = mountNativeComparison(items, mathById, config);
       $('document-native-output').replaceChildren(nativeElement);
       const nativeMeasurement = measureNativeComparison(nativeElement, items);
       $('document-native-diagnostic').textContent = nativeComparisonSummary(nativeMeasurement, result);
+      const flowElement = mountNativeComparison(items, flowById,
+        { ...config, mathFlow: 'breakable' });
+      $('document-native-flow-output').replaceChildren(flowElement);
+      const nativeFlowMeasurement = measureNativeComparison(flowElement, items);
+      const stoneSummary = {
+        engine: 'Stone original candidate + SUUSHIKI math box adapter (not stock Stone)',
+        status: stoneControl.status,
+        lineCount: stoneControl.lineCount ?? null,
+        formulaCount: stoneControl.geometry?.length ?? 0,
+        boundaryViolations: stoneControl.boundaryViolations ?? null,
+        horizontalOverflows: stoneControl.horizontalOverflows ?? null,
+        overlaps: stoneControl.overlaps ?? null,
+        displayAllowed: stoneControl.displayAllowed,
+      };
+      $('document-fourway-diagnostic').textContent =
+        '通常HTML・式内非分割：本文を含む行 ' + nativeMeasurement.textBearingLineCount +
+        '、数式SVG ' + nativeMeasurement.mathFragmentCount + '片\n' +
+        '通常HTML・式内改行あり：本文を含む行 ' + nativeFlowMeasurement.textBearingLineCount +
+        '、数式SVG ' + nativeFlowMeasurement.mathFragmentCount + '片' +
+        '、横はみ出し ' + (nativeFlowMeasurement.horizontalOverflow ? 'あり' : 'なし') + '\n' +
+        'Stone候補（最小接続）：' + (stoneSummary.lineCount ?? '配置不能') +
+        '行、状態 ' + stoneSummary.status + '\n' +
+        'SUUSHIKI：' + (result.lineCount ?? '配置不能') + '行、状態 ' + result.status +
+        '\n（HTMLは本文を含む行だけ、Stone/SUUSHIKIは段落の総行数です。）';
       $('document-diagnostic').textContent = describe(result);
       $('document-diagnostic').dataset.result =
         result.status === 'composed' && result.overlaps.length === 0 ? 'ok' : 'warning';
       record = safeRecord(result, source, config);
       record.nativeComparison = nativeMeasurement;
+      record.nativeFlowComparison = nativeFlowMeasurement;
+      record.flowDetails = flowDetails;
+      record.stoneControl = stoneSummary;
       if (latexReference) {
         const comparison = compareWithLatex(result, config, latexReference, collisionCases.t02d.source);
         record.latexComparison = comparison;
@@ -191,7 +241,10 @@ async function refresh() {
     currentMath = [];
     $('document-output').replaceChildren();
     $('document-native-output').replaceChildren();
+    $('document-native-flow-output').replaceChildren();
+    $('document-stone-output').replaceChildren();
     $('document-native-diagnostic').textContent = '';
+    $('document-fourway-diagnostic').textContent = '';
     $('document-diagnostic').textContent = '';
     $('document-metrics').textContent = '';
     $('document-latex-compare').textContent = '';
@@ -246,6 +299,7 @@ for (const id of [
 
 document.fonts.addEventListener('loadingdone', () => {
   measurements.clear();
+  flowMeasurements.clear();
   refresh();
 });
 
