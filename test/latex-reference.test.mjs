@@ -47,6 +47,15 @@ test('TeX parser validates dimensions, flexible glue and paragraph tags', () => 
     /Missing hbox/);
 });
 
+test('captured real LuaLaTeX log reproduces the committed numeric baseline', () => {
+  const log = readFileSync(new URL('../benchmarks/latex/reference-log.txt', import.meta.url), 'utf8');
+  const parsed = parseLatexLog(log);
+  assert.deepEqual(parsed.parameters, reference.parameters);
+  assert.deepEqual(parsed.hboxesPt, reference.hboxesPt);
+  assert.deepEqual(parsed.partsPt, reference.partsPt);
+  assert.deepEqual(parsed.paragraphs, reference.paragraphs);
+});
+
 test('saved LuaLaTeX baseline agrees with its own measured T02a width decomposition', () => {
   const d = derivedReference(reference);
   assert.equal(reference.schemaVersion, 1);
