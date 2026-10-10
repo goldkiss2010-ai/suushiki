@@ -73,3 +73,32 @@ export function inlineBoxSvg(result, showFrames = true) {
   const guides = result.lines.map(line => `<line x1="0" x2="${result.ctx.renderSize.width}" y1="${line.baseline}" y2="${line.baseline}" stroke="#3977ca" stroke-width="0.6"/>`).join('');
   return svg.replace('</svg>', `${guides}<rect data-inline-box="true" x="${b.x}" y="${b.y}" width="${b.width}" height="${b.height}" fill="#e6f0fc" stroke="#3977ca"/><line x1="${b.x}" x2="${b.x + b.width}" y1="${b.baseline}" y2="${b.baseline}" stroke="#c83939"/></svg>`);
 }
+
+export function mountInlineMath(result, measuredSvg, { showFrames = true, fontSize, family } = {}) {
+  if (result.status !== 'composed') return null;
+  const template = document.createElement('template');
+  template.innerHTML = inlineBoxSvg(result, showFrames);
+  const textSvg = template.content.firstElementChild;
+  const rectangle = textSvg.querySelector('[data-inline-box]');
+  if (showFrames) {
+    rectangle.setAttribute('fill', 'none');
+    rectangle.setAttribute('data-math-frame', 'true');
+    rectangle.removeAttribute('data-inline-box');
+  } else rectangle.remove();
+  const output = document.createElement('div');
+  output.dataset.mathParagraph = 'true';
+  output.style.position = 'relative';
+  output.style.width = `${result.ctx.renderSize.width}px`;
+  const b = result.geometry;
+  const math = measuredSvg.cloneNode(true);
+  math.setAttribute('width', b.width);
+  math.setAttribute('height', b.height);
+  math.setAttribute('data-inline-math', 'true');
+  Object.assign(math.style, { position: 'absolute', display: 'block',
+    left: `${b.x}px`, top: `${b.y}px`, width: `${b.width}px`, height: `${b.height}px`,
+    verticalAlign: '', fontSize: `${fontSize}px`, fontFamily: family });
+  // Keep MathJax as a root SVG viewport. A nested SVG's bounding client rect
+  // describes its drawn contents rather than the root viewport measured above.
+  output.append(textSvg, math);
+  return output;
+}

@@ -1,5 +1,5 @@
 import { layoutText, getSharedCanvasMeasurer, svgString } from '/vendor/stone/index.js';
-import { layoutInlineBox, inlineBoxSvg } from './inline-box.js';
+import { layoutInlineBox, inlineBoxSvg, mountInlineMath } from './inline-box.js';
 
 const $ = id => document.getElementById(id);
 const cases = [
@@ -69,11 +69,11 @@ async function renderMath(settings) {
     line.style.left = '0';
     line.style.top = `${baselineY - row.getBoundingClientRect().top}px`;
     row.append(line);
-    const geometry = { width: rounded(rect.width), height: rounded(rect.height),
-      ascent: rounded(baselineY - rect.top), descent: rounded(rect.bottom - baselineY),
+    const geometry = { width: rect.width, height: rect.height,
+      ascent: baselineY - rect.top, descent: rect.bottom - baselineY,
       viewBox: svg.getAttribute('viewBox'), svgCount: math.querySelectorAll('svg').length };
     const pre = document.createElement('pre');
-    pre.textContent = JSON.stringify(geometry, null, 2);
+    pre.textContent = JSON.stringify(geometry, (_, value) => typeof value === 'number' ? rounded(value) : value, 2);
     article.append(pre);
     results.push({ id, tex, metrics, ...geometry });
   }
@@ -97,11 +97,12 @@ async function update() {
       const stone = renderStone(settings);
       const math = await renderMath(settings);
       const inlineBox = renderInlineBox(settings, stone.options);
+      const inlineMath = renderInlineMath(settings, stone.options, math);
       record = { capturedAt: new Date().toISOString(), userAgent: navigator.userAgent,
         devicePixelRatio, versions: { stone: '0.2.0', mathjax: window.MathJax.version },
-        settings, stone, math, inlineBox };
+        settings, stone, math, inlineBox, inlineMath };
     } while (version !== requested);
-    $('status').textContent = '確認 OK：単体計測と仮ボックスの検証が完了しました。';
+    $('status').textContent = '確認 OK：単体計測と和文への接続が完了しました。';
     $('status').dataset.state = 'ready';
     $('download').disabled = false;
   } catch (error) {
@@ -122,11 +123,48 @@ function renderInlineBox(settings, options) {
   $('box-source').textContent = '式の位置を確認する。ここに［仮ボックス］を置き、（括弧）と句読点の折り返しを観察します。次の行も確認します。';
   const { ctx, ...data } = result;
   const { runs, source, ...summary } = data;
+  summary.baselineSteps = result.lines?.slice(1).map((line, i) => rounded(line.baseline - result.lines[i].baseline));
+  $('box-line-steps').textContent = summary.baselineSteps ? `行ごとのベースライン間隔：${summary.baselineSteps.join(', ')} px` : '';
   $('box-metrics').textContent = JSON.stringify(summary, null, 2);
   $('box-status').textContent = result.status === 'unsatisfied-width'
     ? `幅制約未充足：ボックス ${result.requiredWidth} px が組版幅 ${result.availableWidth} px を超えています。幅を広げてください。`
     : result.overlaps.length ? `固定行送りで ${result.overlaps.length} 組、行の占有領域が重なっています。`
     : '仮ボックスの配置完了：行の占有領域の重なりはありません。';
+  return data;
+}
+
+function renderInlineMath(settings, options, measured) {
+  const selected = measured.find(math => math.id === $('inline-formula').value);
+  const sourceSvg = document.querySelector(`[data-case="${selected.id}"] mjx-container svg`);
+  if (selected.svgCount !== 1) throw new Error('数式が複数の SVG に分割されています。');
+  const before = '式の位置を確認する。ここに';
+  const after = 'を置き、（括弧）と句読点の折り返しを観察します。次の行も確認します。';
+  const result = layoutInlineBox({ before, after, box: { id: selected.id, tex: selected.tex,
+    width: selected.width, ascent: selected.ascent, descent: selected.descent },
+    width: settings.width, options, measurer, policy: $('math-line-policy').value });
+  const output = $('inline-math-output');
+  output.style.width = `${settings.width}px`;
+  output.replaceChildren();
+  const svg = mountInlineMath(result, sourceSvg, { showFrames: settings.showFrames,
+    fontSize: settings.fontSize, family: settings.family });
+  if (svg) output.append(svg);
+  $('inline-math-source').textContent = `原文：${before}［${selected.tex}］${after}`;
+  const { ctx, ...data } = result;
+  data.formula = { id: selected.id, tex: selected.tex };
+  if (svg) {
+    const actual = svg.querySelector('[data-inline-math]').getBoundingClientRect();
+    data.renderedBox = { width: actual.width, height: actual.height };
+    data.dimensionError = { width: actual.width - result.geometry.width,
+      height: actual.height - result.geometry.height };
+  }
+  const { runs, source, ...summary } = data;
+  summary.baselineSteps = result.lines?.slice(1).map((line, i) => rounded(line.baseline - result.lines[i].baseline));
+  $('math-line-steps').textContent = summary.baselineSteps ? `行ごとのベースライン間隔：${summary.baselineSteps.join(', ')} px` : '';
+  $('inline-math-metrics').textContent = JSON.stringify(summary, (_, value) => typeof value === 'number' ? rounded(value) : value, 2);
+  $('inline-math-status').textContent = result.status === 'unsatisfied-width'
+    ? '幅制約未充足：数式が組版幅を超えています。幅を広げてください。'
+    : result.overlaps.length ? `固定行送りで ${result.overlaps.length} 組、行の占有領域が重なっています。`
+    : '数式の配置完了：行の占有領域の重なりはありません。';
   return data;
 }
 
@@ -146,7 +184,7 @@ try {
   if (!window.MathJax?.startup?.promise) throw new Error('MathJax を読み込めませんでした。npm ci と再起動を確認してください。');
   await window.MathJax.startup.promise;
   if (!measurer) throw new Error('Canvas 2D が使えるブラウザーで開いてください。');
-  for (const id of ['width', 'font-size', 'font', 'frames', 'source', 'box-width', 'box-ascent', 'box-descent', 'line-policy']) {
+  for (const id of ['width', 'font-size', 'font', 'frames', 'source', 'box-width', 'box-ascent', 'box-descent', 'line-policy', 'inline-formula', 'math-line-policy']) {
     $(id).addEventListener('input', update);
   }
   document.fonts.addEventListener('loadingdone', update);

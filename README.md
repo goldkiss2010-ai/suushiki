@@ -8,7 +8,7 @@ The initial investigation uses [stone-engine.js](https://github.com/non-standard
 
 SUUSHIKI aims to inherit Stone's design intent, extend Japanese paragraph composition to mathematics, and connect it to a math typesetting engine. Stone's current implementation is a reference for this work, not a compatibility requirement.
 
-> Status: research / design with a standalone measurement harness. No working integrated typesetter is claimed yet.
+> Status: experimental one-formula integration. A general-purpose integrated typesetter is not yet available.
 
 ## Run the first experiment
 
@@ -19,9 +19,9 @@ npm ci
 npm run dev
 ```
 
-Open `http://127.0.0.1:5173/`. The page displays Stone text and four MathJax formulas separately, and a Japanese paragraph containing one measured placeholder box. It allows changes to width/font/size and box dimensions, compares adaptive and fixed line advance, and exports geometry as JSON. Stop the server with Ctrl+C. No build step is required. Run `npm test` for the placeholder adapter checks.
+Open `http://127.0.0.1:5173/`. The page displays Stone text and four MathJax formulas separately, a measured placeholder box, and an actual selected formula inside a Japanese paragraph. It allows changes to width/font/size and box dimensions, compares adaptive and fixed line advance, and exports geometry as JSON. Stop the server with Ctrl+C. No build step is required. Run `npm test` for the placeholder adapter checks.
 
-See [環境構築と実行手順 (Windows / PowerShell)](docs/getting-started.md), [standalone verification](docs/standalone-check.md), and [placeholder integration verification](docs/inline-box-check.md). Actual MathJax formulas do not yet participate in the Japanese paragraph's line breaking.
+See [環境構築と実行手順 (Windows / PowerShell)](docs/getting-started.md), [standalone verification](docs/standalone-check.md), [placeholder integration](docs/inline-box-check.md), and [actual formula integration](docs/inline-math-check.md). One nonbreaking MathJax formula can now participate in the Japanese paragraph's line breaking; the seven collision cases and broader typesetting behavior remain to be evaluated.
 
 ## Why
 
@@ -57,7 +57,7 @@ See [docs/architecture.md](docs/architecture.md), [docs/research-plan.md](docs/r
 
 The initial [research collection (日本語)](docs/math-typesetting/README.md) records 18 source entries, 39 rules and choices, and 32 comparison inputs.
 
-It distinguishes engine algorithms, font metrics, Japanese composition requirements and publication conventions. Each source has an explicit verification status; the comparison inputs have not yet been rendered or measured.
+It distinguishes engine algorithms, font metrics, Japanese composition requirements and publication conventions. Each source has an explicit verification status; the full 32-case comparison suite has not yet been run.
 
 The next investigation focuses on [seven collision patterns](docs/math-typesetting/decisions.md), with [seven targeted inputs](examples/math-conflicts.md). [Stone's design and constraints](docs/math-typesetting/stone-engine.md) are recorded against a fixed upstream commit. Style variants are parameter choices, not collision counts. Integrated behavior remains untested.
 
