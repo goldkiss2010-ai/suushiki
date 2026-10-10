@@ -22,6 +22,8 @@ jobs:
       - run: npm test
       - name: Syntax check browser modules
         run: |
+          node --check public/css-isolation.js
+          node --check scripts/browser-css-isolation.mjs
           node --check public/line-edge-analysis.js
           node --check scripts/browser-edge-sweep.mjs
           node --check public/mathjax-flow.js
