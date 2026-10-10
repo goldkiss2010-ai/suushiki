@@ -133,3 +133,7 @@ npm.cmd run dev
 依存導入、ローカル HTTP 配信、和文の再組版、４式の SVG 表示・寸法測定、条件変更と JSON 保存を確認するための構成です。実測結果は [standalone-check.md](standalone-check.md) を参照してください。
 
 接続結果は [inline-box-check.md](inline-box-check.md)、[inline-math-check.md](inline-math-check.md)、[collision-check.md](collision-check.md) を参照してください。１つの数式の接続と境界の制約判定を実装しています。図表配置、統合したコピー・アクセシビリティは未実装です。
+
+### 衝突時の表示を切り替える
+
+実数式の欄で「数式を囲む括弧」を選び、狭い幅で警告を確認する。「禁則・横幅の衝突時」を「表示を保留」にすると、違反する候補の描画が止まり、原文と判定は残る。幅を広げて禁則・横幅を満たすと表示が再開する。「候補を表示して観察」に戻すと従来の比較表示になる。固定行送りの縦の重なりは別の警告として扱う。

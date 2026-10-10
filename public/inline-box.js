@@ -3,8 +3,9 @@ import { layoutText, svgString, isNotStartingChar, isNotEndingChar } from '@non-
 // Experimental adapter: one object-replacement grapheme participates in Stone's
 // horizontal line breaking; its source identity and geometry remain separate.
 const MARKER = '\uFFFC';
-export function layoutInlineBox({ before, after, box, width, options, measurer, policy = 'adaptive' }) {
+export function layoutInlineBox({ before, after, box, width, options, measurer, policy = 'adaptive', conflictPolicy = 'inspect' }) {
   if (before.includes(MARKER) || after.includes(MARKER)) throw new Error('入力に予約済みの置換文字が含まれています。');
+  if (!['inspect', 'withhold'].includes(conflictPolicy)) throw new Error('Unknown conflict policy');
   if (!['adaptive', 'fixed'].includes(policy)) throw new Error('Unknown line policy');
   for (const value of [width, box.width, box.ascent, box.descent]) {
     if (!Number.isFinite(value) || value < 0) throw new Error('Box dimensions must be finite and nonnegative');
@@ -64,13 +65,15 @@ export function layoutInlineBox({ before, after, box, width, options, measurer, 
   }
   const horizontalOverflows = ctx.runs.filter(run => run.frame.x < -1e-6 || run.frame.x + run.frame.width > width + 1e-6)
     .map(run => ({ line: run.line, char: run.char, left: run.frame.x, right: run.frame.x + run.frame.width }));
-  return { source, status: boundaryViolations.length || horizontalOverflows.length ? 'constraint-conflict' : 'composed',
+  const conflict = boundaryViolations.length > 0 || horizontalOverflows.length > 0;
+  return { source, status: conflict ? 'constraint-conflict' : 'composed',
+    conflictPolicy, displayAllowed: !conflict || conflictPolicy === 'inspect',
     policy, geometry, lines, overlaps, boundaryViolations, horizontalOverflows,
     lineCount: ctx.lineCount, renderedSize: ctx.renderedSize, runs: ctx.runs, ctx };
 }
 
 export function inlineBoxSvg(result, showFrames = true) {
-  if (!result.ctx) return '';
+  if (!result.ctx || result.displayAllowed === false) return '';
   // Suppression belongs to rendering: keep the layout context and exported runs
   // visible so Stone's isTruncated does not misreport the replaced object.
   const object = result.ctx.runs.find(run => run.char === MARKER);
@@ -86,7 +89,7 @@ export function inlineBoxSvg(result, showFrames = true) {
 }
 
 export function mountInlineMath(result, measuredSvg, { showFrames = true, fontSize, family } = {}) {
-  if (!result.ctx) return null;
+  if (!result.ctx || result.displayAllowed === false) return null;
   const template = document.createElement('template');
   template.innerHTML = inlineBoxSvg(result, showFrames);
   const textSvg = template.content.firstElementChild;

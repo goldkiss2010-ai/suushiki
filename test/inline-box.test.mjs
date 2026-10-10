@@ -93,3 +93,20 @@ test('each single-pixel boundary is either legal or explicitly reported', () => 
     }
   }
 });
+
+
+test('withholding a conflicting candidate preserves diagnostics and source, then recovers', () => {
+  const args = { before: '条件は（', after: '）で与えられる。', width: 104 };
+  const observed = compose(args);
+  const withheld = compose({ ...args, conflictPolicy: 'withhold' });
+  assert.equal(withheld.status, 'constraint-conflict');
+  assert.equal(withheld.displayAllowed, false);
+  assert.equal(inlineBoxSvg(withheld), '');
+  assert.deepEqual(withheld.source, observed.source);
+  assert.deepEqual(withheld.boundaryViolations, observed.boundaryViolations);
+  assert.deepEqual(withheld.runs, observed.runs);
+  const recovered = compose({ ...args, width: 160, conflictPolicy: 'withhold' });
+  assert.equal(recovered.status, 'composed');
+  assert.equal(recovered.displayAllowed, true);
+  assert.ok(inlineBoxSvg(recovered).includes('data-inline-box'));
+});

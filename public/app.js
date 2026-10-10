@@ -151,7 +151,7 @@ function renderInlineMath(settings, options, measured) {
   }[boundaryCase];
   const result = layoutInlineBox({ before, after, box: { id: selected.id, tex: selected.tex,
     width: selected.width, ascent: selected.ascent, descent: selected.descent },
-    width: settings.width, options, measurer, policy: $('math-line-policy').value });
+    width: settings.width, options, measurer, policy: $('math-line-policy').value, conflictPolicy: $('conflict-policy').value });
   const output = $('inline-math-output');
   output.style.width = `${settings.width}px`;
   output.replaceChildren();
@@ -175,7 +175,7 @@ function renderInlineMath(settings, options, measured) {
   $('inline-math-status').textContent = result.status === 'unsatisfied-layout'
     ? '配置未充足：省略・非表示が発生するため、結果を採用していません。'
     : result.status === 'constraint-conflict'
-    ? `制約衝突：禁則違反 ${result.boundaryViolations.length} 件、横幅の超過 ${result.horizontalOverflows.length} 件。表示は確認用の候補です。幅を広げて比較してください。`
+    ? `制約衝突：禁則違反 ${result.boundaryViolations.length} 件、横幅の超過 ${result.horizontalOverflows.length} 件。${result.displayAllowed ? '表示は確認用の候補です。' : '表示を保留し、原文と違反の記録を保持しています。'}幅を広げて比較してください。`
     : result.status === 'unsatisfied-width'
     ? `幅制約未充足：数式 ${rounded(result.requiredWidth)} px が組版幅 ${result.availableWidth} px を超えています。原式を保持しています。`
     : result.overlaps.length ? `固定行送りで ${result.overlaps.length} 組、行の占有領域が重なっています。`
@@ -200,7 +200,7 @@ try {
   if (!window.MathJax?.startup?.promise) throw new Error('MathJax を読み込めませんでした。npm ci と再起動を確認してください。');
   await window.MathJax.startup.promise;
   if (!measurer) throw new Error('Canvas 2D が使えるブラウザーで開いてください。');
-  for (const id of ['width', 'font-size', 'font', 'frames', 'source', 'box-width', 'box-ascent', 'box-descent', 'line-policy', 'inline-formula', 'math-line-policy', 'boundary-case']) {
+  for (const id of ['width', 'font-size', 'font', 'frames', 'source', 'box-width', 'box-ascent', 'box-descent', 'line-policy', 'inline-formula', 'math-line-policy', 'boundary-case', 'conflict-policy']) {
     $(id).addEventListener('input', update);
   }
   document.fonts.addEventListener('loadingdone', update);
