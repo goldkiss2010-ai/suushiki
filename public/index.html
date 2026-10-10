@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SUUSHIKI — 単体確認</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/mathjax-config.js"></script>
+  <script defer src="/vendor/mathjax/tex-svg.js"></script>
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+<main>
+  <h1>SUUSHIKI 単体確認</h1>
+  <p>Stone の和文組版と MathJax の数式計測を、接続前にそれぞれ確認します。</p>
+  <p id="status" role="status">依存ライブラリを読み込んでいます…</p>
+  <section aria-labelledby="settings-heading">
+    <h2 id="settings-heading">確認条件</h2>
+    <div class="settings">
+      <label>組版幅 <input id="width" type="range" min="160" max="720" step="10" value="480"> <output id="width-value">480 px</output></label>
+      <label>文字サイズ <select id="font-size"><option>17</option><option selected>20</option><option>24</option></select> px</label>
+      <label>和文フォント <select id="font"><option value="sans-serif">OS 標準ゴシック</option><option value="serif">OS 標準明朝</option></select></label>
+      <label><input id="frames" type="checkbox" checked>Stone の文字枠を表示</label>
+    </div>
+    <p class="note">フォントは OS によって異なります。同じ数値の再現には同じフォント環境が必要です。</p>
+  </section>
+  <section aria-labelledby="stone-heading">
+    <h2 id="stone-heading">1. Stone：和文段落</h2>
+    <label for="source">入力文</label>
+    <textarea id="source" rows="3">「数式のある文章」を組む前に、和文の折り返しを確認する。句読点、（括弧）、英字 Stone 123 を含む段落です。幅を変えて、行頭と行末を観察してください。</textarea>
+    <div class="viewport"><div id="stone-output" aria-hidden="true"></div></div>
+    <div id="stone-source" class="sr-only"></div>
+    <pre id="stone-metrics"></pre>
+  </section>
+  <section aria-labelledby="math-heading">
+    <h2 id="math-heading">2. MathJax：数式の寸法</h2>
+    <p>青線はベースライン。幅・上側・下側は表示された SVG の枠から測ります。</p>
+    <div id="math-output" class="viewport"></div>
+  </section>
+  <section>
+    <h2>観察記録</h2>
+    <button id="download" type="button" disabled>現在の測定結果を JSON で保存</button>
+    <p class="note">この段階では和文と数式の共通の行分割、図表配置、コピーの統合は未実装です。</p>
+  </section>
+</main>
+</body>
+</html>

@@ -8,7 +8,20 @@ The initial investigation uses [stone-engine.js](https://github.com/non-standard
 
 SUUSHIKI aims to inherit Stone's design intent, extend Japanese paragraph composition to mathematics, and connect it to a math typesetting engine. Stone's current implementation is a reference for this work, not a compatibility requirement.
 
-> Status: research / design. No working integrated typesetter is claimed yet.
+> Status: research / design with a standalone measurement harness. No working integrated typesetter is claimed yet.
+
+## Run the first experiment
+
+Install Node.js 24 LTS, clone this repository, then run in its root:
+
+```sh
+npm ci
+npm run dev
+```
+
+Open `http://127.0.0.1:5173/`. The page displays Stone text and four MathJax formulas separately, allows changes to width/font/size, and exports geometry as JSON. Stop the server with Ctrl+C. No build step is required.
+
+See [環境構築と実行手順 (Windows / PowerShell)](docs/getting-started.md) and [the verification record](docs/standalone-check.md). The Japanese paragraph and mathematics do not yet share line breaking.
 
 ## Why
 
@@ -58,10 +71,11 @@ Browser output is the first target. HTML, SVG or Canvas are rendering options, n
 
 SUUSHIKI is an **independent, unofficial experiment**, not an official stone-engine.js extension.
 
-- [stone-engine.js](https://github.com/non-standardworld/stone_engine_js) — inspect its current license, API and transitive requirements before integration.
-- [MathJax](https://github.com/mathjax/MathJax) — inspect its current license and output/measurement APIs before integration.
+- [stone-engine.js](https://github.com/non-standardworld/stone_engine_js) — npm 0.2.0, MIT. This harness uses its public layout, Canvas measurement and SVG APIs.
+- [MathJax](https://github.com/mathjax/MathJax) — npm 4.1.3, Apache-2.0. This harness uses TeX-to-SVG conversion and browser geometry.
+- MathJax New Computer Modern font — dependency 4.1.3, Apache-2.0; exact dependency versions and integrity hashes are recorded in `package-lock.json`.
 
-Any copied or redistributed source, fonts, examples or bundled assets must retain the applicable notices. This repository does not currently vendor either engine.
+Any copied or redistributed source, fonts, examples or bundled assets must retain the applicable notices. This repository does not currently vendor either engine; npm-installed packages retain their upstream notices.
 
 ## Contributing
 

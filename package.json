@@ -1,0 +1,13 @@
+{
+  "name": "suushiki",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Standalone Japanese text and mathematics measurement experiment",
+  "engines": { "node": ">=24 <25" },
+  "scripts": { "dev": "node scripts/serve.mjs" },
+  "dependencies": {
+    "@non-standardworld/stone-engine.js": "0.2.0",
+    "mathjax": "4.1.3"
+  }
+}
