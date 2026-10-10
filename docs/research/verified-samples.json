@@ -1,0 +1,424 @@
+{
+  "schema": "suushiki/research-evidence-excerpt/1",
+  "dateJST": "2026-10-11",
+  "purpose": "既知の衝突条件の観測記録。自動的な製品優劣・JLREQ完全準拠・バグ判定には使わない。",
+  "provenance": {
+    "packages": {
+      "stoneEngineJs": "0.2.0",
+      "mathjax": "4.1.3",
+      "playwright": "1.55.1",
+      "chromium": "140.0.7339.186"
+    },
+    "font": "sans-serif (runner-specific Japanese fallback)",
+    "fontSizePx": 20,
+    "jstDay": "2026-10-11",
+    "experiments": [
+      {
+        "name": "four-way",
+        "observations": 12,
+        "run": "https://github.com/goldkiss2010-ai/suushiki/actions/runs/38091544273",
+        "fullJsonSha256": "d6229023a2a27312217d7f90b16bdbf087e4e0d7089c2edcd89580852e65006e"
+      },
+      {
+        "name": "line-edge-sweep",
+        "observations": 1026,
+        "run": "https://github.com/goldkiss2010-ai/suushiki/actions/runs/38092208319",
+        "fullJsonSha256": "2cdaa327d3d648897dba1c136fbfdf07f781c1cb430bfaf3c4e982ba91ae4ee1"
+      },
+      {
+        "name": "css-atomic-isolation",
+        "observations": 2944,
+        "run": "https://github.com/goldkiss2010-ai/suushiki/actions/runs/38093345109",
+        "fullJsonSha256": "59891d5310e2852497fd929969d2e8f9e1549b9ddb31a74b0094f4ac6cfe1758"
+      }
+    ]
+  },
+  "lineEdgeExamples": [
+    {
+      "id": "T03b",
+      "widthPx": 125,
+      "mode": "plain",
+      "native": {
+        "status": "measured",
+        "lineStartsUtf16": [
+          0,
+          6,
+          16,
+          21
+        ],
+        "issues": [
+          {
+            "edge": "end",
+            "char": "（",
+            "offsetUtf16": 5
+          }
+        ]
+      },
+      "stone": {
+        "status": "constraint-conflict",
+        "lineStartsUtf16": [
+          0,
+          5,
+          6,
+          16,
+          19
+        ],
+        "issues": [
+          {
+            "edge": "end",
+            "char": "（",
+            "offsetUtf16": 5
+          }
+        ]
+      },
+      "suushiki": {
+        "status": "composed",
+        "lineStartsUtf16": [
+          0,
+          5,
+          16,
+          21
+        ],
+        "issues": []
+      }
+    },
+    {
+      "id": "T03b",
+      "widthPx": 130,
+      "mode": "plain",
+      "native": {
+        "status": "measured",
+        "lineStartsUtf16": [
+          0,
+          6,
+          16,
+          21
+        ],
+        "issues": [
+          {
+            "edge": "end",
+            "char": "（",
+            "offsetUtf16": 5
+          }
+        ]
+      },
+      "stone": {
+        "status": "constraint-conflict",
+        "lineStartsUtf16": [
+          0,
+          5,
+          6,
+          16,
+          19
+        ],
+        "issues": [
+          {
+            "edge": "end",
+            "char": "（",
+            "offsetUtf16": 5
+          }
+        ]
+      },
+      "suushiki": {
+        "status": "composed",
+        "lineStartsUtf16": [
+          0,
+          5,
+          16,
+          21
+        ],
+        "issues": []
+      }
+    },
+    {
+      "id": "T03b",
+      "widthPx": 160,
+      "mode": "plain",
+      "native": {
+        "status": "measured",
+        "lineStartsUtf16": [
+          0,
+          6,
+          18
+        ],
+        "issues": [
+          {
+            "edge": "end",
+            "char": "（",
+            "offsetUtf16": 5
+          }
+        ]
+      },
+      "stone": {
+        "status": "composed",
+        "lineStartsUtf16": [
+          0,
+          5,
+          17
+        ],
+        "issues": []
+      },
+      "suushiki": {
+        "status": "composed",
+        "lineStartsUtf16": [
+          0,
+          5,
+          17
+        ],
+        "issues": []
+      }
+    },
+    {
+      "id": "T03a",
+      "widthPx": 157,
+      "mode": "plain",
+      "native": {
+        "status": "measured",
+        "lineStartsUtf16": [
+          0,
+          7,
+          19,
+          26
+        ],
+        "issues": [
+          {
+            "edge": "start",
+            "char": "。",
+            "offsetUtf16": 19
+          }
+        ]
+      },
+      "stone": {
+        "status": "composed",
+        "lineStartsUtf16": [
+          0,
+          7,
+          10,
+          22
+        ],
+        "issues": []
+      },
+      "suushiki": {
+        "status": "composed",
+        "lineStartsUtf16": [
+          0,
+          7,
+          10,
+          22
+        ],
+        "issues": []
+      }
+    },
+    {
+      "id": "T02c",
+      "widthPx": 150,
+      "mode": "plain",
+      "native": {
+        "status": "measured",
+        "lineStartsUtf16": [
+          0,
+          16
+        ],
+        "issues": [
+          {
+            "edge": "end",
+            "char": "（",
+            "offsetUtf16": 15
+          }
+        ]
+      },
+      "stone": {
+        "status": "composed",
+        "lineStartsUtf16": [
+          0,
+          15,
+          23
+        ],
+        "issues": []
+      },
+      "suushiki": {
+        "status": "composed",
+        "lineStartsUtf16": [
+          0,
+          15,
+          23
+        ],
+        "issues": []
+      }
+    }
+  ],
+  "cssIsolation": {
+    "widthsPx": {
+      "first": [
+        115,
+        190
+      ],
+      "second": [
+        220,
+        235
+      ],
+      "count": 92
+    },
+    "note": "各構造の値は CSS line-break auto と strict の両方で等しい。件数は各モードごとに92幅中。",
+    "T03b": [
+      {
+        "variant": "flat-text",
+        "probeIssueWidthCount": 0,
+        "overflowWidthCount": 0
+      },
+      {
+        "variant": "inline-text",
+        "probeIssueWidthCount": 0,
+        "overflowWidthCount": 0
+      },
+      {
+        "variant": "atomic-box",
+        "probeIssueWidthCount": 91,
+        "overflowWidthCount": 0
+      },
+      {
+        "variant": "mathjax",
+        "probeIssueWidthCount": 91,
+        "overflowWidthCount": 0
+      },
+      {
+        "variant": "atomic-nowrap",
+        "probeIssueWidthCount": 0,
+        "overflowWidthCount": 18,
+        "overflowRangePx": [
+          115,
+          132
+        ]
+      },
+      {
+        "variant": "mathjax-nowrap",
+        "probeIssueWidthCount": 0,
+        "overflowWidthCount": 18,
+        "overflowRangePx": [
+          115,
+          132
+        ]
+      },
+      {
+        "variant": "atomic-group-box",
+        "probeIssueWidthCount": 0,
+        "overflowWidthCount": 18,
+        "overflowRangePx": [
+          115,
+          132
+        ]
+      },
+      {
+        "variant": "mathjax-group-box",
+        "probeIssueWidthCount": 0,
+        "overflowWidthCount": 18,
+        "overflowRangePx": [
+          115,
+          132
+        ]
+      }
+    ],
+    "T03a": [
+      {
+        "variant": "flat-text",
+        "probeIssueWidthCount": 0,
+        "overflowWidthCount": 0
+      },
+      {
+        "variant": "inline-text",
+        "probeIssueWidthCount": 0,
+        "overflowWidthCount": 0
+      },
+      {
+        "variant": "atomic-box",
+        "probeIssueWidthCount": 5,
+        "overflowWidthCount": 0,
+        "issueRangePx": [
+          155,
+          159
+        ]
+      },
+      {
+        "variant": "mathjax",
+        "probeIssueWidthCount": 5,
+        "overflowWidthCount": 0,
+        "issueRangePx": [
+          155,
+          159
+        ]
+      },
+      {
+        "variant": "atomic-nowrap",
+        "probeIssueWidthCount": 0,
+        "overflowWidthCount": 0
+      },
+      {
+        "variant": "mathjax-nowrap",
+        "probeIssueWidthCount": 0,
+        "overflowWidthCount": 0
+      },
+      {
+        "variant": "atomic-group-box",
+        "probeIssueWidthCount": 0,
+        "overflowWidthCount": 0
+      },
+      {
+        "variant": "mathjax-group-box",
+        "probeIssueWidthCount": 0,
+        "overflowWidthCount": 0
+      }
+    ]
+  },
+  "fourWaySelected": [
+    {
+      "id": "T04",
+      "widthPx": 160,
+      "stoneLineBoxOverlapPairs": 1,
+      "suushikiLineBoxOverlapPairs": 0
+    },
+    {
+      "id": "T04",
+      "widthPx": 240,
+      "stoneLineBoxOverlapPairs": 1,
+      "suushikiLineBoxOverlapPairs": 0
+    },
+    {
+      "id": "T04",
+      "widthPx": 480,
+      "stoneLineBoxOverlapPairs": 1,
+      "suushikiLineBoxOverlapPairs": 0
+    },
+    {
+      "id": "T06a",
+      "widthPx": 160,
+      "suushiki": "unsatisfied-width",
+      "htmlAtomicOverflow": true,
+      "mathjaxFlowableOverflow": false,
+      "flowableSvgFragments": 8
+    },
+    {
+      "id": "T06a",
+      "widthPx": 240,
+      "suushiki": "unsatisfied-width",
+      "htmlAtomicOverflow": true,
+      "mathjaxFlowableOverflow": false,
+      "flowableSvgFragments": 8
+    },
+    {
+      "id": "T06a",
+      "widthPx": 480,
+      "suushiki": "composed",
+      "suushikiLineCount": 2,
+      "htmlAtomicOverflow": false,
+      "mathjaxFlowableOverflow": false,
+      "flowableSvgFragments": 8
+    }
+  ],
+  "cautions": [
+    "Source offsets use UTF-16 indexing.",
+    "MathJax SVG fragment count is not the number of rendered lines.",
+    "Stone candidate is produced with the SUUSHIKI math adapter, not with upstream Stone alone.",
+    "Text glyph ink, cross-browser conformance, complete JLREQ, and accessibility are not adjudicated.",
+    "Source-substitution to the text character 式 does not preserve formula metrics."
+  ]
+}
