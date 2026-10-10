@@ -53,6 +53,12 @@ try {
   assert.equal(summary.source, source);
   assert.equal(summary.geometry.length, 7);
   assert.equal(summary.status, 'composed');
+  const nativeInitial = JSON.parse(await page.locator('#document-metrics').textContent()).nativeComparison;
+  assert.equal(nativeInitial.sourceMatches, true);
+  assert.equal(nativeInitial.mathCount, summary.geometry.length);
+  assert.equal(nativeInitial.nativeMode, 'plain');
+  assert.ok(nativeInitial.textBearingLineCount > 0);
+  assert.equal(await page.locator('[data-native-math]').count(), summary.geometry.length);
   await mkdir('artifacts', { recursive: true });
   await page.screenshot({ path: 'artifacts/suushiki-document-480.png', fullPage: true });
 
@@ -66,12 +72,17 @@ try {
   assert.equal(await page.locator('#document-source').inputValue(), source);
   const width = await page.locator('.document-canvas').evaluate(el => el.getBoundingClientRect().width);
   assert.equal(width, 240);
+  const nativeWidth = await page.locator('.native-comparison-canvas').evaluate(el =>
+    el.getBoundingClientRect().width);
+  assert.equal(nativeWidth, 240);
+  assert.equal(JSON.parse(await page.locator('#document-metrics').textContent()).nativeComparison.sourceMatches, true);
   await page.screenshot({ path: 'artifacts/suushiki-document-240.png', fullPage: true });
 
   // Syntax errors cannot render a misleading previous document.
   await page.locator('#document-source').fill('途中で終わる数式 \\(x');
   await page.locator('#document-status[data-state="error"]').waitFor({ timeout: 15000 });
   assert.equal(await page.locator('[data-document-math]').count(), 0);
+  assert.equal(await page.locator('[data-native-math]').count(), 0);
   assert.equal(await page.locator('#document-copy-source').inputValue(), '途中で終わる数式 \\(x');
 
   // A different example should recover without reloading the page.
@@ -101,6 +112,9 @@ try {
     assert.equal(state.summary.status, 'composed', key);
     assert.equal(state.summary.geometry.length, fixture.expectedFormulaCount, key);
     assert.equal(await page.locator('[data-document-math]').count(), fixture.expectedFormulaCount, key);
+    assert.equal(await page.locator('[data-native-math]').count(), fixture.expectedFormulaCount, key);
+    assert.equal(state.nativeComparison.mathCount, fixture.expectedFormulaCount, key);
+    assert.equal(state.nativeComparison.sourceMatches, true, key);
     const drawn = await page.locator('.document-canvas').evaluate(canvas => {
       const base = canvas.getBoundingClientRect();
       return [...canvas.querySelectorAll('[data-document-math]')].map(svg => {
@@ -142,6 +156,11 @@ try {
       const tooNarrowState = JSON.parse(await page.locator('#document-metrics').textContent());
       assert.equal(tooNarrowState.summary.status, 'unsatisfied-width');
       assert.equal(await page.locator('[data-document-math]').count(), 0);
+      assert.equal(await page.locator('[data-native-math]').count(), fixture.expectedFormulaCount);
+      assert.equal(tooNarrowState.nativeComparison.sourceMatches, true);
+      assert.equal(tooNarrowState.nativeComparison.mathCount, fixture.expectedFormulaCount);
+      assert.ok(tooNarrowState.nativeComparison.mathOverflows.length > 0,
+        'native control should independently reveal the over-wide formula');
       assert.equal(await page.locator('#document-copy-source').inputValue(), fixture.source);
       await page.locator('#document-width').evaluate(input => {
         input.value = '720';
@@ -260,6 +279,53 @@ try {
   assert.equal(latexWide.summary.geometry.length, 2);
   assert.equal(latexWide.source, latexNarrow.source);
   await page.screenshot({ path: 'artifacts/suushiki-latex-reference-24zw.png', fullPage: true });
+
+
+  // Native HTML control: same source, same MathJax SVGs, independent CSS wrap.
+  await page.locator('#document-example').selectOption('t03a');
+  await page.locator('#document-width').evaluate(input => {
+    input.value = '180';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await page.locator('#document-native-mode').selectOption('plain');
+  await page.waitForFunction(() => {
+    const raw = document.getElementById('document-metrics').textContent;
+    return document.getElementById('document-status').dataset.state === 'ready' &&
+      raw && JSON.parse(raw).nativeComparison.nativeMode === 'plain' &&
+      JSON.parse(raw).settings.width === 180 &&
+      document.getElementById('document-example').value === 't03a';
+  }, null, { timeout: 30000 });
+  const nativePlain = JSON.parse(await page.locator('#document-metrics').textContent());
+  assert.equal(nativePlain.nativeComparison.sourceMatches, true);
+  assert.equal(nativePlain.nativeComparison.mathCount, 1);
+  assert.ok(nativePlain.nativeComparison.textBearingLineCount > 0);
+  const plainSourceText = await page.locator('.native-comparison-canvas [data-native-text-start]')
+    .allTextContents();
+  assert.equal(plainSourceText.join(''),
+    nativePlain.source.split(/\\\([^]*?\\\)/u).join(''));
+  // SVG ink rectangles are measured independently; no SUUSHIKI margin is
+  // applied to native math, so positions may differ.
+  const nativeSvg = nativePlain.nativeComparison.mathBoxes[0];
+  assert.ok(nativeSvg.width > 0 && nativeSvg.height > 0);
+  assert.ok(Math.abs(nativeSvg.width - nativePlain.summary.geometry[0].width) < 1,
+    'both controls reuse one MathJax SVG output measured at the same size');
+  await page.screenshot({ path: 'artifacts/suushiki-native-plain-180.png', fullPage: true });
+  await page.locator('#document-native-mode').selectOption('modern');
+  await page.waitForFunction(() => {
+    const raw = document.getElementById('document-metrics').textContent;
+    return document.getElementById('document-status').dataset.state === 'ready' &&
+      raw && JSON.parse(raw).nativeComparison.nativeMode === 'modern';
+  }, null, { timeout: 30000 });
+  const nativeModern = JSON.parse(await page.locator('#document-metrics').textContent());
+  assert.equal(nativeModern.nativeComparison.sourceMatches, true);
+  assert.equal(nativeModern.source, nativePlain.source);
+  assert.equal(nativeModern.nativeComparison.mathCount, nativePlain.nativeComparison.mathCount);
+  assert.deepEqual(nativeModern.nativeComparison.mathBoxes.map(b => b.id),
+    nativePlain.nativeComparison.mathBoxes.map(b => b.id));
+  assert.equal(typeof nativeModern.nativeComparison.cssSupport.textAutospace, 'boolean');
+  assert.equal(typeof nativeModern.nativeComparison.cssSupport.textSpacingTrim, 'boolean');
+  assert.ok((await page.locator('#document-native-diagnostic').textContent()).includes('text-autospace'));
+  await page.screenshot({ path: 'artifacts/suushiki-native-modern-180.png', fullPage: true });
 
   assert.deepEqual(errors, []);
   console.log('Browser smoke checks passed; screenshots saved in artifacts/.');

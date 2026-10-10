@@ -4,6 +4,7 @@ import { layoutDocument } from './document-layout.js';
 import { mountDocument } from './document-render.js';
 import { collisionCases } from './collision-cases.js';
 import { compareWithLatex, comparisonText } from './latex-compare.js';
+import { mountNativeComparison, measureNativeComparison, nativeComparisonSummary } from './native-comparison.js';
 
 const $ = id => document.getElementById(id);
 const measurer = getSharedCanvasMeasurer();
@@ -25,6 +26,7 @@ function settings() {
     conflictPolicy: $('document-conflict-policy').value,
     wordPolicy: $('document-word-policy').value,
     boundarySpacing: $('document-boundary-spacing').value,
+    nativeMode: $('document-native-mode').value,
     showFrames: $('document-frames').checked,
     showBaselines: $('document-baselines').checked,
   };
@@ -63,7 +65,7 @@ async function measure(tex, config) {
     if (Object.values(box).some(n => !Number.isFinite(n) || n < 0) ||
         box.width <= 0 || box.ascent + box.descent <= 0)
       throw new Error('数式の測定寸法が不正です: ' + tex);
-    const measured = { svg: svg.cloneNode(true), box };
+    const measured = { svg: svg.cloneNode(true), math: math.cloneNode(true), box };
     measurements.set(key, measured);
     return measured;
   } finally {
@@ -134,11 +136,13 @@ async function refresh() {
       const items = parseDocument(source);
       const boxes = new Map();
       const svgById = new Map();
+      const mathById = new Map();
       for (const item of items) {
         if (item.type !== 'math') continue;
         const measured = await measure(item.tex, config);
         boxes.set(item.id, measured.box);
         svgById.set(item.id, measured.svg);
+        mathById.set(item.id, measured.math);
       }
       measurer.invalidate();
       const options = {
@@ -158,10 +162,15 @@ async function refresh() {
       if (version !== requested) continue;
       const preview = mountDocument(result, svgById, config);
       $('document-output').replaceChildren(...(preview ? [preview] : []));
+      const nativeElement = mountNativeComparison(items, mathById, config);
+      $('document-native-output').replaceChildren(nativeElement);
+      const nativeMeasurement = measureNativeComparison(nativeElement, items);
+      $('document-native-diagnostic').textContent = nativeComparisonSummary(nativeMeasurement, result);
       $('document-diagnostic').textContent = describe(result);
       $('document-diagnostic').dataset.result =
         result.status === 'composed' && result.overlaps.length === 0 ? 'ok' : 'warning';
       record = safeRecord(result, source, config);
+      record.nativeComparison = nativeMeasurement;
       if (latexReference) {
         const comparison = compareWithLatex(result, config, latexReference, collisionCases.t02d.source);
         record.latexComparison = comparison;
@@ -181,6 +190,8 @@ async function refresh() {
     record = null;
     currentMath = [];
     $('document-output').replaceChildren();
+    $('document-native-output').replaceChildren();
+    $('document-native-diagnostic').textContent = '';
     $('document-diagnostic').textContent = '';
     $('document-metrics').textContent = '';
     $('document-latex-compare').textContent = '';
@@ -229,7 +240,8 @@ $('document-example').addEventListener('change', () => {
 for (const id of [
   'document-source', 'document-width', 'document-font-size', 'document-font',
   'document-line-policy', 'document-boundary-policy', 'document-conflict-policy',
-  'document-word-policy', 'document-boundary-spacing', 'document-frames', 'document-baselines',
+  'document-word-policy', 'document-boundary-spacing', 'document-native-mode',
+  'document-frames', 'document-baselines',
 ]) $(id).addEventListener('input', refresh);
 
 document.fonts.addEventListener('loadingdone', () => {

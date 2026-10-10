@@ -13,3 +13,12 @@ nav { font-size: 14px; }
   section { padding: 14px; }
   .document-actions button { width: 100%; }
 }
+
+.document-comparison-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.document-comparison-panel { min-width: 0; }
+.document-comparison-panel h3 { font-size: 15px; margin: 8px 0; }
+.document-comparison-panel .document-viewport { min-height: 100px; }
+.native-comparison-canvas { display: block; margin: 0; padding: 0; border: 0; }
+.native-comparison-canvas mjx-container { color: inherit; }
+#document-native-diagnostic { font-size: 13px; background: #f5f6f7; padding: 10px; border-radius: 5px; }
+@media (max-width: 800px) { .document-comparison-grid { grid-template-columns: minmax(0, 1fr); } }

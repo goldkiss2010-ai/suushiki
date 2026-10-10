@@ -12,6 +12,10 @@
 - 高い数式では adaptive 行送りにより文字と数式の占有領域を含む高さを確保します。fixed は比較用です。
 - JSON は原文・選択された方針・数式の配置座標・行の矩形・制約診断・各 run の矩形を保存します。
 
+## 通常HTMLとの並列比較
+
+ブラウザー独自のインラインレイアウトを対照群として、同じ原稿とMathJax数式を左右のプレビューへ表示します。HTML側の文字間隔は標準モードと、text-autospace / text-spacing-trim を試すモードを切り替えられます。CSS実装が異なる環境では対応状況を測定値に残します。JSONの nativeComparison にHTMLの文字を含む行数、式の寸法、オーバーフロー等を記録します。比較条件と解釈の注意点は [通常HTML + CSS + MathJax との並列比較](native-html-comparison.md) を参照。
+
 ## 確認手順
 
 1. Node 24 を使用し、リポジトリで npm ci、続いて npm run dev を実行します。
