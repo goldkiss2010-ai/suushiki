@@ -410,6 +410,7 @@ try {
           formulas: observation.summary.geometry?.length ?? null,
           kinsoku: observation.summary.boundaryViolations?.length ?? null,
           overflows: observation.summary.horizontalOverflows?.length ?? null,
+          lineBoxOverlaps: observation.summary.overlaps?.length ?? null,
         },
         stoneCandidate: observation.stoneControl,
         htmlAtomic: {
@@ -428,13 +429,17 @@ try {
     }
   }
   assert.equal(matrix.cases.length, 12);
+  const tallCases = matrix.cases.filter(row => row.caseId === 't04');
+  assert.ok(tallCases.every(row => row.stoneCandidate.overlaps?.length > 0));
+  assert.ok(tallCases.every(row => row.suushiki.lineBoxOverlaps === 0),
+    'adaptive line advance should remove overlapping occupied line boxes');
   await writeFile('artifacts/suushiki-four-way-matrix.json',
     JSON.stringify(matrix, null, 2) + '\n');
   // Expose concise data even when a client cannot download Actions artifacts.
   console.log('FOUR_WAY_MATRIX_JSON=' + JSON.stringify(matrix.cases.map(row => ({
     caseId: row.caseId, widthPx: row.widthPx,
-    suushiki: [row.suushiki.status, row.suushiki.lineCount],
-    stoneCandidate: [row.stoneCandidate.status, row.stoneCandidate.lineCount],
+    suushiki: [row.suushiki.status, row.suushiki.lineCount, row.suushiki.lineBoxOverlaps],
+    stoneCandidate: [row.stoneCandidate.status, row.stoneCandidate.lineCount, row.stoneCandidate.overlaps?.length ?? null],
     nativeAtomic: [row.htmlAtomic.fragmentCount, row.htmlAtomic.horizontalOverflow],
     nativeFlowable: [row.htmlFlowable.fragmentCount, row.htmlFlowable.horizontalOverflow],
   }))));
