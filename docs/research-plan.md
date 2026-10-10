@@ -1,5 +1,13 @@
 # Research plan and decision gates
 
+## Existing rules collected — 2026-10-10
+
+Start with [the mathematical typesetting research collection (日本語)](math-typesetting/README.md).
+It separates source-backed rules from SUUSHIKI design proposals and includes
+[32 comparison inputs](../examples/math-typesetting-cases.md). These inputs are
+not executed tests. Source collection does not satisfy the implementation or
+visual evaluation gates below.
+
 ## Gate 0 — Inspect upstream (no implementation assumptions)
 
 - Record exact upstream versions, licenses and dependency constraints.
@@ -40,3 +48,4 @@ Display math, equation numbering, multiline formula breaks, vertical Japanese, f
 ## Risks
 
 The central risk is not drawing math: it is the inability to inject an external measured box into stone-engine.js's actual composition algorithm without changing its internals. Resolve this before investing in UI or export pipelines.
+

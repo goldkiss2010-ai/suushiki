@@ -36,6 +36,12 @@ A nonbreaking formula box is acceptable in the first prototype. Breaking *inside
 
 See [docs/architecture.md](docs/architecture.md), [docs/research-plan.md](docs/research-plan.md) and [examples/fixtures.md](examples/fixtures.md).
 
+## Existing mathematical typesetting rules
+
+The initial [research collection (日本語)](docs/math-typesetting/README.md) records 18 source entries, 39 rules and choices, and 32 comparison inputs.
+
+It distinguishes engine algorithms, font metrics, Japanese composition requirements and publication conventions. Each source has an explicit verification status; the comparison inputs have not yet been rendered or measured.
+
 ## Scope and output formats
 
 Browser output is the first target. HTML, SVG or Canvas are rendering options, not architectural commitments. EPUB/Kindle reflow is a separate compatibility problem: arbitrary JavaScript-driven layout cannot be assumed to run inside an ebook reader.
@@ -56,3 +62,4 @@ The most useful early contributions are small reproducible layout cases, documen
 ## License
 
 **Not yet selected.** Do not assume this repository is MIT-licensed merely because one or more upstream dependencies may use permissive licenses.
+
