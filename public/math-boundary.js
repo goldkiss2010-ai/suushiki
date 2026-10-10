@@ -3,7 +3,7 @@
 const JAPANESE = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u;
 const WORD = /[\p{L}\p{N}]/u;
 const WHITESPACE = /\s/u;
-export const BOUNDARY_POLICIES = ['none', 'quarter', 'contextual'];
+export const BOUNDARY_POLICIES = ['none', 'quarter', 'contextual', 'elastic'];
 
 function adjacentSourceChar(items, index, direction) {
   const item = items[index + direction];
@@ -27,9 +27,16 @@ export function mathBoundaryGaps(items, index, { policy = 'none', fontSize = 20 
   const before = adjacentSourceChar(items, index, -1);
   const after = adjacentSourceChar(items, index, 1);
   const quarter = fontSize * 0.25;
+  const left = policy !== 'none' && eligible(before, policy) ? quarter : 0;
+  const right = policy !== 'none' && eligible(after, policy) ? quarter : 0;
+  // Experimental TeX-like glue contract: elasticity is reported as a budget,
+  // not yet used by a justification/optimal-line-breaking algorithm.
+  const glue = natural => ({
+    natural, stretch: policy === 'elastic' ? natural : 0,
+    shrink: policy === 'elastic' ? natural / 2 : 0,
+  });
   return {
-    left: policy !== 'none' && eligible(before, policy) ? quarter : 0,
-    right: policy !== 'none' && eligible(after, policy) ? quarter : 0,
+    left, right, leftGlue: glue(left), rightGlue: glue(right),
     before, after, policy, unit: 'css-px', provenance: 'generated-boundary',
   };
 }
