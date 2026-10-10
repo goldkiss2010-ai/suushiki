@@ -7,6 +7,7 @@ import { compareWithLatex, comparisonText } from './latex-compare.js';
 import { mountNativeComparison, measureNativeComparison, nativeComparisonSummary } from './native-comparison.js';
 import { typesetFlowableMath } from './mathjax-flow.js';
 import { inspectNativeLineEdges, inspectStoneLineEdges } from './line-edge-analysis.js';
+import { makeIsolationCase, measureIsolationCase } from './css-isolation.js';
 
 const $ = id => document.getElementById(id);
 const measurer = getSharedCanvasMeasurer();
@@ -230,6 +231,35 @@ async function refresh() {
         suushiki: inspectStoneLineEdges(result, items),
       };
       record.edgeComparison = edgeResults;
+      if (items.filter(item => item.type === 'math').length === 1) {
+        const isolation = makeIsolationCase({
+          source, boxes, mathById, width: config.width,
+          fontSize: config.fontSize, family: config.family,
+          variant: $('document-isolation-variant').value,
+          lineBreak: $('document-isolation-linebreak').value,
+        });
+        $('document-isolation-output').replaceChildren(isolation.root);
+        const measuredIsolation = measureIsolationCase(isolation);
+        record.cssIsolationComparison = {
+          ...measuredIsolation, sourceSubstituted: isolation.substitute,
+        };
+        $('document-isolation-diagnostic').textContent = [
+          '条件: ' + measuredIsolation.variant +
+            ' / line-break:' + measuredIsolation.lineBreak,
+          '状態: ' + measuredIsolation.status +
+            ' / 禁則プローブ: ' + measuredIsolation.violations.map(v =>
+              v.edge + '「' + v.char + '」@' + v.offset).join('、'),
+          '横はみ出し: ' + (measuredIsolation.overflow ? 'あり' : 'なし') +
+            ' / 行頭位置: ' + measuredIsolation.lines.map(l => l.first).join(', '),
+          isolation.substitute ? '※ 数式を文字に置換。元と同じ寸法ではありません。' :
+            '※ 数式の幅・上昇・下降はMathJaxの実測値を利用。',
+        ].join('\n');
+      } else {
+        $('document-isolation-output').replaceChildren();
+        $('document-isolation-diagnostic').textContent =
+          'この実験は数式が1個の原稿（T03a / T03bなど）を対象にします。';
+        record.cssIsolationComparison = { status: 'requires-one-math-item' };
+      }
       const edgeLine = (label, report) => label + '：' + report.status +
         '／行頭位置 ' + report.lines.slice(0, 12).map(l => l.first).join(', ') +
         (report.lines.length > 12 ? ' …' : '') +
@@ -267,6 +297,8 @@ async function refresh() {
     $('document-native-diagnostic').textContent = '';
     $('document-fourway-diagnostic').textContent = '';
     $('document-edge-diagnostic').textContent = '';
+    $('document-isolation-output').replaceChildren();
+    $('document-isolation-diagnostic').textContent = '';
     $('document-diagnostic').textContent = '';
     $('document-metrics').textContent = '';
     $('document-latex-compare').textContent = '';
@@ -317,6 +349,7 @@ for (const id of [
   'document-line-policy', 'document-boundary-policy', 'document-conflict-policy',
   'document-word-policy', 'document-boundary-spacing', 'document-native-mode',
   'document-frames', 'document-baselines',
+  'document-isolation-variant', 'document-isolation-linebreak',
 ]) $(id).addEventListener('input', refresh);
 
 document.fonts.addEventListener('loadingdone', () => {

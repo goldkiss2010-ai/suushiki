@@ -6,6 +6,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { collisionCases, collisionCaseKeys } from '../public/collision-cases.js';
 import { runLineEdgeSweep } from './browser-edge-sweep.mjs';
+import { runCssIsolation } from './browser-css-isolation.mjs';
 
 const base = 'http://127.0.0.1:5173';
 const server = spawn(process.execPath, ['scripts/serve.mjs'], {
@@ -446,6 +447,43 @@ try {
   }))));
 
   await runLineEdgeSweep(page);
+  // The same CSS isolation controls should be available interactively to
+  // the researcher, not only as hidden CI probes.
+  await page.locator('#document-example').selectOption('t03b');
+  await page.locator('#document-width').evaluate(el => {
+    el.value = '125';
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await page.locator('#document-isolation-experiment').evaluate(el => { el.open = true; });
+  await page.locator('#document-isolation-linebreak').selectOption('strict');
+  await page.locator('#document-isolation-variant').selectOption('mathjax');
+  await page.waitForFunction(() => {
+    const raw = document.querySelector('#document-metrics').textContent;
+    return document.querySelector('#document-status').dataset.state === 'ready' &&
+      raw && JSON.parse(raw).source === document.querySelector('#document-source').value &&
+      JSON.parse(raw).settings.width === 125 &&
+      JSON.parse(raw).cssIsolationComparison?.variant === 'mathjax' &&
+      JSON.parse(raw).cssIsolationComparison?.lineBreak === 'strict';
+  }, null, { timeout: 30000 });
+  const cssBaseline = JSON.parse(await page.locator('#document-metrics').textContent())
+    .cssIsolationComparison;
+  assert.ok(cssBaseline.violations.some(v => v.char === '（' && v.edge === 'end'));
+  assert.equal(cssBaseline.overflow, false);
+  assert.equal(await page.locator('#document-isolation-output [data-native-math]').count(), 1);
+  await page.locator('#document-isolation-variant').selectOption('mathjax-nowrap');
+  await page.waitForFunction(() => {
+    const raw = document.querySelector('#document-metrics').textContent;
+    return document.querySelector('#document-status').dataset.state === 'ready' &&
+      raw && JSON.parse(raw).cssIsolationComparison?.variant === 'mathjax-nowrap';
+  }, null, { timeout: 30000 });
+  const cssNowrap = JSON.parse(await page.locator('#document-metrics').textContent())
+    .cssIsolationComparison;
+  assert.deepEqual(cssNowrap.violations, []);
+  assert.equal(cssNowrap.overflow, true,
+    'nowrap must not be praised as a full solution while group does not fit');
+  await page.locator('#document-isolation-experiment').evaluate(el => { el.open = true; });
+  await page.screenshot({ path: 'artifacts/suushiki-css-isolation-workbench.png', fullPage: true });
+  await runCssIsolation(page);
   assert.deepEqual(errors, []);
   console.log('Browser smoke checks passed; screenshots and matrices saved in artifacts/.');
 } finally {

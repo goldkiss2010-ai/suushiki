@@ -123,6 +123,34 @@
       <pre id="document-edge-diagnostic" aria-live="polite"></pre>
       <p class="note">通常HTMLの本文の各文字をDOM Rangeで測定し、数式の実測基線と突き合わせます。Stoneの禁則文字集合を共通の観察基準として適用します。これはJLREQ準拠の判定ではなく、MathJax式内改行ありの列は行境界判定の対象外です。</p>
     </details>
+
+    <details id="document-isolation-experiment">
+      <summary>CSS実験：数式を文字や同寸法のインライン要素に置き換える</summary>
+      <p class="note">数式が1個の原稿（T03a / T03b）で比較できます。通常の文字・同寸法の独立要素・MathJaxの違いを切り分けます。</p>
+      <div class="settings">
+        <label>数式の代替と括弧の処理
+          <select id="document-isolation-variant">
+            <option value="mathjax">元のMathJax数式</option>
+            <option value="atomic-box">同寸法のinline-block</option>
+            <option value="flat-text">普通の文字「式」に置換</option>
+            <option value="inline-text">別spanの文字「式」に置換</option>
+            <option value="mathjax-nowrap">MathJax＋隣接する約物をnowrapに</option>
+            <option value="atomic-nowrap">同寸法inline-block＋nowrap</option>
+            <option value="mathjax-group-box">MathJax＋括弧をinline-blockに</option>
+            <option value="atomic-group-box">同寸法inline-block＋括弧もinline-blockに</option>
+          </select>
+        </label>
+        <label>CSSの改行規則
+          <select id="document-isolation-linebreak">
+            <option value="auto">line-break: auto</option>
+            <option value="strict">line-break: strict</option>
+          </select>
+        </label>
+      </div>
+      <pre id="document-isolation-diagnostic" aria-live="polite"></pre>
+      <div class="viewport document-viewport"><div id="document-isolation-output"></div></div>
+      <p class="note">文字に置き換える条件では数式の幅・形状も変わります。同寸法inline-blockは数式の測定値を共有します。nowrapは禁則を解消しても、列幅を超えることがあります。外部の問題報告ではなく、組版方法の比較用です。</p>
+    </details>
     <p class="note">HTML側の描画は直接テキストを含むため選択できます。SUUSHIKI側は検証用SVGで、原文コピーは下の欄から行います。固定行送りでの重なりは警告として残します。</p>
     <div class="document-actions">
       <button id="document-copy" type="button" disabled>原文をコピー</button>
