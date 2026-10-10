@@ -55,6 +55,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: suushiki-document-screenshots
-          path: artifacts/*.png
+          path: |
+            artifacts/*.png
+            artifacts/*.json
           if-no-files-found: ignore
           retention-days: 7
