@@ -2,7 +2,7 @@
 // Run after installing Playwright and its Chromium browser.
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { collisionCases, collisionCaseKeys } from '../public/collision-cases.js';
 
@@ -371,8 +371,68 @@ try {
     .includes('式内改行あり'));
   await page.screenshot({ path: 'artifacts/suushiki-four-way-mobile.png', fullPage: true });
 
+
+  // A machine-readable experiment matrix, not a winner/loser scoreboard.
+  // The full JSON diagnostics can be inspected in the workbench itself.
+  const matrix = {
+    schemaVersion: 1,
+    cases: [], comparisonNotes: [
+      'HTML count excludes blank lines and math-only lines',
+      'Stone candidate requires the SUUSHIKI math marker adapter',
+      'Flowable MathJax generates a different SVG representation',
+    ],
+  };
+  for (const key of ['t02c', 't03a', 't04', 't06a']) {
+    const fixture = collisionCases[key];
+    await page.locator('#document-example').selectOption(key);
+    for (const targetWidth of [160, 240, 480]) {
+      await page.locator('#document-width').evaluate((input, value) => {
+        input.value = String(value);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      }, targetWidth);
+      await page.waitForFunction(({ expectedSource, targetWidth }) => {
+        const status = document.getElementById('document-status');
+        const raw = document.getElementById('document-metrics').textContent;
+        if (status.dataset.state !== 'ready' || !raw) return false;
+        const record = JSON.parse(raw);
+        return record.settings.width === targetWidth &&
+          record.source === expectedSource;
+      }, { expectedSource: fixture.source, targetWidth }, { timeout: 30000 });
+      const observation = JSON.parse(await page.locator('#document-metrics').textContent());
+      assert.equal(observation.nativeFlowComparison.sourceMatches, true);
+      assert.equal(observation.nativeComparison.sourceMatches, true);
+      matrix.cases.push({
+        caseId: key, widthPx: targetWidth, fontSizePx: observation.settings.fontSize,
+        originalSource: observation.source,
+        suushiki: {
+          status: observation.summary.status,
+          lineCount: observation.summary.lineCount ?? null,
+          formulas: observation.summary.geometry?.length ?? null,
+          kinsoku: observation.summary.boundaryViolations?.length ?? null,
+          overflows: observation.summary.horizontalOverflows?.length ?? null,
+        },
+        stoneCandidate: observation.stoneControl,
+        htmlAtomic: {
+          fragmentCount: observation.nativeComparison.mathFragmentCount,
+          textBearingLineCount: observation.nativeComparison.textBearingLineCount,
+          horizontalOverflow: observation.nativeComparison.horizontalOverflow,
+          mathOverflows: observation.nativeComparison.mathOverflows,
+        },
+        htmlFlowable: {
+          fragmentCount: observation.nativeFlowComparison.mathFragmentCount,
+          textBearingLineCount: observation.nativeFlowComparison.textBearingLineCount,
+          horizontalOverflow: observation.nativeFlowComparison.horizontalOverflow,
+          mathOverflows: observation.nativeFlowComparison.mathOverflows,
+        },
+      });
+    }
+  }
+  assert.equal(matrix.cases.length, 12);
+  await writeFile('artifacts/suushiki-four-way-matrix.json',
+    JSON.stringify(matrix, null, 2) + '\n');
+
   assert.deepEqual(errors, []);
-  console.log('Browser smoke checks passed; screenshots saved in artifacts/.');
+  console.log('Browser smoke checks passed; screenshots and matrix saved in artifacts/.');
 } finally {
   if (browser) await browser.close();
   server.kill();
