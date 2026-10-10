@@ -7,6 +7,8 @@ const cases = [
   ['fraction', String.raw`\frac{1}{1+x^2}`],
   ['tall', String.raw`\dfrac{\sum_{k=1}^{n} k^2}{1+\dfrac{1}{x}}`],
   ['blackboard', String.raw`x\in\mathbb{R}`],
+  ['relation', 'a+b=c'],
+  ['long', String.raw`a=b_1+b_2+b_3+b_4+b_5+b_6+b_7+b_8`],
 ];
 let record;
 let requested = 0;
@@ -102,7 +104,7 @@ async function update() {
         devicePixelRatio, versions: { stone: '0.2.0', mathjax: window.MathJax.version },
         settings, stone, math, inlineBox, inlineMath };
     } while (version !== requested);
-    $('status').textContent = '確認 OK：単体計測と和文への接続が完了しました。';
+    $('status').textContent = '計測完了：各欄の配置結果と制約判定を確認してください。';
     $('status').dataset.state = 'ready';
     $('download').disabled = false;
   } catch (error) {
@@ -126,10 +128,14 @@ function renderInlineBox(settings, options) {
   summary.baselineSteps = result.lines?.slice(1).map((line, i) => rounded(line.baseline - result.lines[i].baseline));
   $('box-line-steps').textContent = summary.baselineSteps ? `行ごとのベースライン間隔：${summary.baselineSteps.join(', ')} px` : '';
   $('box-metrics').textContent = JSON.stringify(summary, null, 2);
-  $('box-status').textContent = result.status === 'unsatisfied-width'
+  $('box-status').textContent = result.status === 'unsatisfied-layout'
+    ? '配置未充足：省略・非表示が発生するため、結果を採用していません。'
+    : result.status === 'constraint-conflict' ? '制約衝突：禁則または横幅の条件を満たしていません。'
+    : result.status === 'unsatisfied-width'
     ? `幅制約未充足：ボックス ${result.requiredWidth} px が組版幅 ${result.availableWidth} px を超えています。幅を広げてください。`
     : result.overlaps.length ? `固定行送りで ${result.overlaps.length} 組、行の占有領域が重なっています。`
     : '仮ボックスの配置完了：行の占有領域の重なりはありません。';
+  $('box-status').dataset.result = result.status === 'composed' && !result.overlaps.length ? 'ok' : 'warning';
   return data;
 }
 
@@ -137,8 +143,12 @@ function renderInlineMath(settings, options, measured) {
   const selected = measured.find(math => math.id === $('inline-formula').value);
   const sourceSvg = document.querySelector(`[data-case="${selected.id}"] mjx-container svg`);
   if (selected.svgCount !== 1) throw new Error('数式が複数の SVG に分割されています。');
-  const before = '式の位置を確認する。ここに';
-  const after = 'を置き、（括弧）と句読点の折り返しを観察します。次の行も確認します。';
+  const boundaryCase = $('boundary-case').value;
+  const [before, after] = {
+    normal: ['式の位置を確認する。ここに', 'を置き、（括弧）と句読点の折り返しを観察します。次の行も確認します。'],
+    sentence: ['十分に長い説明の後で', '。次の条件を考える。'],
+    brackets: ['この条件は（', '）で与えられる。'],
+  }[boundaryCase];
   const result = layoutInlineBox({ before, after, box: { id: selected.id, tex: selected.tex,
     width: selected.width, ascent: selected.ascent, descent: selected.descent },
     width: settings.width, options, measurer, policy: $('math-line-policy').value });
@@ -151,6 +161,7 @@ function renderInlineMath(settings, options, measured) {
   $('inline-math-source').textContent = `原文：${before}［${selected.tex}］${after}`;
   const { ctx, ...data } = result;
   data.formula = { id: selected.id, tex: selected.tex };
+  data.boundaryCase = boundaryCase;
   if (svg) {
     const actual = svg.querySelector('[data-inline-math]').getBoundingClientRect();
     data.renderedBox = { width: actual.width, height: actual.height };
@@ -161,10 +172,15 @@ function renderInlineMath(settings, options, measured) {
   summary.baselineSteps = result.lines?.slice(1).map((line, i) => rounded(line.baseline - result.lines[i].baseline));
   $('math-line-steps').textContent = summary.baselineSteps ? `行ごとのベースライン間隔：${summary.baselineSteps.join(', ')} px` : '';
   $('inline-math-metrics').textContent = JSON.stringify(summary, (_, value) => typeof value === 'number' ? rounded(value) : value, 2);
-  $('inline-math-status').textContent = result.status === 'unsatisfied-width'
-    ? '幅制約未充足：数式が組版幅を超えています。幅を広げてください。'
+  $('inline-math-status').textContent = result.status === 'unsatisfied-layout'
+    ? '配置未充足：省略・非表示が発生するため、結果を採用していません。'
+    : result.status === 'constraint-conflict'
+    ? `制約衝突：禁則違反 ${result.boundaryViolations.length} 件、横幅の超過 ${result.horizontalOverflows.length} 件。表示は確認用の候補です。幅を広げて比較してください。`
+    : result.status === 'unsatisfied-width'
+    ? `幅制約未充足：数式 ${rounded(result.requiredWidth)} px が組版幅 ${result.availableWidth} px を超えています。原式を保持しています。`
     : result.overlaps.length ? `固定行送りで ${result.overlaps.length} 組、行の占有領域が重なっています。`
     : '数式の配置完了：行の占有領域の重なりはありません。';
+  $('inline-math-status').dataset.result = result.status === 'composed' && !result.overlaps.length ? 'ok' : 'warning';
   return data;
 }
 
@@ -184,7 +200,7 @@ try {
   if (!window.MathJax?.startup?.promise) throw new Error('MathJax を読み込めませんでした。npm ci と再起動を確認してください。');
   await window.MathJax.startup.promise;
   if (!measurer) throw new Error('Canvas 2D が使えるブラウザーで開いてください。');
-  for (const id of ['width', 'font-size', 'font', 'frames', 'source', 'box-width', 'box-ascent', 'box-descent', 'line-policy', 'inline-formula', 'math-line-policy']) {
+  for (const id of ['width', 'font-size', 'font', 'frames', 'source', 'box-width', 'box-ascent', 'box-descent', 'line-policy', 'inline-formula', 'math-line-policy', 'boundary-case']) {
     $(id).addEventListener('input', update);
   }
   document.fonts.addEventListener('loadingdone', update);

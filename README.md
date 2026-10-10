@@ -19,9 +19,9 @@ npm ci
 npm run dev
 ```
 
-Open `http://127.0.0.1:5173/`. The page displays Stone text and four MathJax formulas separately, a measured placeholder box, and an actual selected formula inside a Japanese paragraph. It allows changes to width/font/size and box dimensions, compares adaptive and fixed line advance, and exports geometry as JSON. Stop the server with Ctrl+C. No build step is required. Run `npm test` for the placeholder adapter checks.
+Open `http://127.0.0.1:5173/`. The page displays Stone text and six MathJax formulas separately, a measured placeholder box, and an actual selected formula inside a Japanese paragraph. It allows changes to width/font/size and box dimensions, compares adaptive and fixed line advance, and exports geometry as JSON. Stop the server with Ctrl+C. No build step is required. Run `npm test` for the adapter and boundary checks.
 
-See [環境構築と実行手順 (Windows / PowerShell)](docs/getting-started.md), [standalone verification](docs/standalone-check.md), [placeholder integration](docs/inline-box-check.md), and [actual formula integration](docs/inline-math-check.md). One nonbreaking MathJax formula can now participate in the Japanese paragraph's line breaking; the seven collision cases and broader typesetting behavior remain to be evaluated.
+See [環境構築と実行手順 (Windows / PowerShell)](docs/getting-started.md), [standalone verification](docs/standalone-check.md), [placeholder integration](docs/inline-box-check.md), [actual formula integration](docs/inline-math-check.md), and [boundary constraint checks](docs/collision-check.md). One nonbreaking MathJax formula can participate in Japanese line breaking. Narrow punctuation/bracket cases report unmet constraints; a formula wider than the column preserves its source and reports insufficient width. The full seven-case collision suite remains to be evaluated.
 
 ## Why
 
@@ -59,7 +59,7 @@ The initial [research collection (日本語)](docs/math-typesetting/README.md) r
 
 It distinguishes engine algorithms, font metrics, Japanese composition requirements and publication conventions. Each source has an explicit verification status; the full 32-case comparison suite has not yet been run.
 
-The next investigation focuses on [seven collision patterns](docs/math-typesetting/decisions.md), with [seven targeted inputs](examples/math-conflicts.md). [Stone's design and constraints](docs/math-typesetting/stone-engine.md) are recorded against a fixed upstream commit. Style variants are parameter choices, not collision counts. Integrated behavior remains untested.
+The investigation focuses on [seven collision patterns](docs/math-typesetting/decisions.md), with [seven targeted inputs](examples/math-conflicts.md). [Stone's design and constraints](docs/math-typesetting/stone-engine.md) are recorded against a fixed upstream commit. Style variants are parameter choices, not collision counts. Preliminary one-formula integration checks are linked above; the complete collision matrix remains untested.
 
 The current direction is design inheritance with extension and connection. Exact upstream behavior, including constant line advance, is not an invariant of SUUSHIKI.
 

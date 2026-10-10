@@ -54,3 +54,42 @@ test('the SVG draws one measured box and does not emit a placeholder glyph', () 
   assert.ok(svg.includes(`width="${result.geometry.width}" height="${result.geometry.height}"`));
   assert.equal(result.ctx.isTruncated, false);
 });
+
+test('a fitting box with an unfittable following full stop reports a boundary conflict', () => {
+  const narrow = compose({ before: '説明の後で', after: '。次の条件を考える。', width: 104 });
+  assert.equal(narrow.status, 'constraint-conflict');
+  assert.ok(narrow.boundaryViolations.some(v => v.edge === 'start' && v.char === '。'));
+  assert.equal(narrow.ctx.isTruncated, false);
+  const wide = compose({ before: '説明の後で', after: '。次の条件を考える。', width: 160 });
+  assert.equal(wide.status, 'composed');
+  assert.deepEqual(wide.boundaryViolations, []);
+});
+
+test('opening and closing brackets around an atomic box are checked at line edges', () => {
+  const narrow = compose({ before: '条件は（', after: '）で与えられる。', width: 104 });
+  assert.equal(narrow.status, 'constraint-conflict');
+  assert.ok(narrow.boundaryViolations.some(v => v.edge === 'end' && v.char === '（'));
+  assert.ok(narrow.boundaryViolations.some(v => v.edge === 'start' && v.char === '）'));
+  assert.ok(inlineBoxSvg(narrow).includes('data-inline-box'));
+  const wide = compose({ before: '条件は（', after: '）で与えられる。', width: 160 });
+  assert.equal(wide.status, 'composed');
+});
+
+test('each single-pixel boundary is either legal or explicitly reported', () => {
+  for (const [before, after] of [['説明の後で', '。次の条件を考える。'], ['条件は（', '）で与えられる。']]) {
+    for (let width = 104; width <= 260; width++) {
+      const result = compose({ before, after, width });
+      const illegalEdges = result.lines.flatMap(line => {
+        const chars = result.runs.filter(r => r.line === line.index && !r.isNewline && r.char.trim()).map(r => r.char);
+        return [['start', chars[0]], ['end', chars.at(-1)]].filter(([edge, char]) =>
+          edge === 'start' ? ['。', '）'].includes(char) : char === '（')
+          .map(([edge, char]) => ({ line: line.index, edge, char }));
+      });
+      assert.deepEqual(result.boundaryViolations, illegalEdges);
+      assert.equal(result.status, illegalEdges.length ? 'constraint-conflict' : 'composed');
+      assert.equal(result.ctx.isTruncated, false);
+      assert.equal(result.geometry.width, 104);
+      assert.equal(result.runs.filter(r => r.char !== '\uFFFC').map(r => r.char).join(''), before + after);
+    }
+  }
+});

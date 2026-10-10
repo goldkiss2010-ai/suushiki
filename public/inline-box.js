@@ -1,4 +1,4 @@
-import { layoutText, svgString } from '@non-standardworld/stone-engine.js';
+import { layoutText, svgString, isNotStartingChar, isNotEndingChar } from '@non-standardworld/stone-engine.js';
 
 // Experimental adapter: one object-replacement grapheme participates in Stone's
 // horizontal line breaking; its source identity and geometry remain separate.
@@ -22,7 +22,8 @@ export function layoutInlineBox({ before, after, box, width, options, measurer, 
     metrics: (font, size) => measurer.metrics(font, size),
   }, { width });
   const object = ctx.runs.find(run => run.char === MARKER);
-  if (!object || ctx.isTruncated) throw new Error('Stone が入力を保持できませんでした。');
+  if (!object) throw new Error('数式の置換文字が見つかりませんでした。');
+  if (ctx.isTruncated) return { source, status: 'unsatisfied-layout', reason: 'Stone returned hidden or ellipsis runs' };
   object.frame = { x: object.frame.x, y: object.position.y - box.ascent,
     width: box.width, height: box.ascent + box.descent };
   const lines = [];
@@ -54,12 +55,22 @@ export function layoutInlineBox({ before, after, box, width, options, measurer, 
     ascent: box.ascent, descent: box.descent };
   ctx.renderedSize = { width: Math.max(...ctx.runs.map(run => run.frame.x + run.frame.width)),
     height: Math.max(...lines.map(line => line.bottom)) + gap / 2 };
-  return { source, status: 'composed', policy, geometry, lines, overlaps,
+  const boundaryViolations = [];
+  if (options.kinsoku !== false) for (const line of lines) {
+    const runs = ctx.runs.filter(run => run.line === line.index && !run.isNewline && run.char.trim());
+    if (!runs.length) continue;
+    if (isNotStartingChar(runs[0].char)) boundaryViolations.push({ line: line.index, edge: 'start', char: runs[0].char });
+    if (isNotEndingChar(runs.at(-1).char)) boundaryViolations.push({ line: line.index, edge: 'end', char: runs.at(-1).char });
+  }
+  const horizontalOverflows = ctx.runs.filter(run => run.frame.x < -1e-6 || run.frame.x + run.frame.width > width + 1e-6)
+    .map(run => ({ line: run.line, char: run.char, left: run.frame.x, right: run.frame.x + run.frame.width }));
+  return { source, status: boundaryViolations.length || horizontalOverflows.length ? 'constraint-conflict' : 'composed',
+    policy, geometry, lines, overlaps, boundaryViolations, horizontalOverflows,
     lineCount: ctx.lineCount, renderedSize: ctx.renderedSize, runs: ctx.runs, ctx };
 }
 
 export function inlineBoxSvg(result, showFrames = true) {
-  if (result.status !== 'composed') return '';
+  if (!result.ctx) return '';
   // Suppression belongs to rendering: keep the layout context and exported runs
   // visible so Stone's isTruncated does not misreport the replaced object.
   const object = result.ctx.runs.find(run => run.char === MARKER);
@@ -75,7 +86,7 @@ export function inlineBoxSvg(result, showFrames = true) {
 }
 
 export function mountInlineMath(result, measuredSvg, { showFrames = true, fontSize, family } = {}) {
-  if (result.status !== 'composed') return null;
+  if (!result.ctx) return null;
   const template = document.createElement('template');
   template.innerHTML = inlineBoxSvg(result, showFrames);
   const textSvg = template.content.firstElementChild;
