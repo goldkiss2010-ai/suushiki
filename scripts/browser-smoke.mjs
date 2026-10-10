@@ -48,7 +48,7 @@ try {
   await ready(page);
   const source = await page.locator('#document-source').inputValue();
   assert.ok(source.includes('\\(f(x)=x^2\\)'));
-  assert.equal(await page.locator('[data-document-math]').count(), 7);
+  assert.equal(await page.locator('#document-output [data-document-math]').count(), 7);
   const summary = JSON.parse(await page.locator('#document-metrics').textContent()).summary;
   assert.equal(summary.source, source);
   assert.equal(summary.geometry.length, 7);
@@ -75,9 +75,9 @@ try {
     input.dispatchEvent(new Event('input', { bubbles: true }));
   });
   await ready(page);
-  assert.equal(await page.locator('[data-document-math]').count(), 7);
+  assert.equal(await page.locator('#document-output [data-document-math]').count(), 7);
   assert.equal(await page.locator('#document-source').inputValue(), source);
-  const width = await page.locator('.document-canvas').evaluate(el => el.getBoundingClientRect().width);
+  const width = await page.locator('#document-output .document-canvas').evaluate(el => el.getBoundingClientRect().width);
   assert.equal(width, 240);
   const nativeWidth = await page.locator('#document-native-output .native-comparison-canvas').evaluate(el =>
     el.getBoundingClientRect().width);
@@ -91,7 +91,7 @@ try {
   // Syntax errors cannot render a misleading previous document.
   await page.locator('#document-source').fill('途中で終わる数式 \\(x');
   await page.locator('#document-status[data-state="error"]').waitFor({ timeout: 15000 });
-  assert.equal(await page.locator('[data-document-math]').count(), 0);
+  assert.equal(await page.locator('#document-output [data-document-math]').count(), 0);
   assert.equal(await page.locator('#document-native-output [data-native-math]').count(), 0);
   assert.equal(await page.locator('#document-stone-output [data-document-math]').count(), 0);
   assert.equal(await page.locator('#document-copy-source').inputValue(), '途中で終わる数式 \\(x');
@@ -99,7 +99,7 @@ try {
   // A different example should recover without reloading the page.
   await page.locator('#document-example').selectOption('boundaries');
   await ready(page);
-  assert.ok(await page.locator('[data-document-math]').count() > 1);
+  assert.ok(await page.locator('#document-output [data-document-math]').count() > 1);
 
   // Real MathJax + Stone comparison for all seven collision classes.
   await page.locator('#document-font-size').selectOption('17');
@@ -122,13 +122,13 @@ try {
     const state = JSON.parse(await page.locator('#document-metrics').textContent());
     assert.equal(state.summary.status, 'composed', key);
     assert.equal(state.summary.geometry.length, fixture.expectedFormulaCount, key);
-    assert.equal(await page.locator('[data-document-math]').count(), fixture.expectedFormulaCount, key);
+    assert.equal(await page.locator('#document-output [data-document-math]').count(), fixture.expectedFormulaCount, key);
     assert.equal(await page.locator('#document-native-output [data-native-math]').count(), fixture.expectedFormulaCount, key);
     assert.equal(state.nativeComparison.mathCount, fixture.expectedFormulaCount, key);
     assert.equal(state.nativeFlowComparison.mathCount, fixture.expectedFormulaCount, key);
     assert.equal(state.nativeFlowComparison.sourceMatches, true, key);
     assert.equal(state.nativeComparison.sourceMatches, true, key);
-    const drawn = await page.locator('.document-canvas').evaluate(canvas => {
+    const drawn = await page.locator('#document-output .document-canvas').evaluate(canvas => {
       const base = canvas.getBoundingClientRect();
       return [...canvas.querySelectorAll('[data-document-math]')].map(svg => {
         const rect = svg.getBoundingClientRect();
@@ -168,7 +168,7 @@ try {
       }, tooNarrow, { timeout: 30000 });
       const tooNarrowState = JSON.parse(await page.locator('#document-metrics').textContent());
       assert.equal(tooNarrowState.summary.status, 'unsatisfied-width');
-      assert.equal(await page.locator('[data-document-math]').count(), 0);
+      assert.equal(await page.locator('#document-output [data-document-math]').count(), 0);
       assert.equal(await page.locator('#document-native-output [data-native-math]').count(), fixture.expectedFormulaCount);
       assert.equal(tooNarrowState.nativeComparison.sourceMatches, true);
       assert.equal(tooNarrowState.nativeComparison.mathCount, fixture.expectedFormulaCount);
@@ -208,7 +208,7 @@ try {
   assert.equal(mathBefore.boundary.appliedLeft, 17 * 0.25);
   assert.equal(mathBefore.boundary.appliedRight, 17 * 0.25);
   assert.ok(!(await page.locator('#document-source').inputValue()).includes(' \\('));
-  const actualBox = await page.locator('[data-document-math]').evaluate(svg => {
+  const actualBox = await page.locator('#document-output [data-document-math]').evaluate(svg => {
     const rect = svg.getBoundingClientRect();
     const base = svg.parentElement.getBoundingClientRect();
     return { x: rect.x - base.x, width: rect.width };
