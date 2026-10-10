@@ -23,8 +23,10 @@ and the JavaScript implementation at commit
 `79a07777bcec540d94c5bd5304a68e427a1f49e6` (package version declaration `0.2.0`).
 Coordinates and run placement are exposed; the high-level text API has no external
 inline-box argument. This is a source inspection, not a working integration.
-MathJax dimensions and an actual extension/connection procedure remain unresolved, so Gate 0
-is not complete.
+The standalone measurement and single-formula connection are now implemented; a
+structured multi-formula layout core and experimental browser workbench have also
+been added. The entire seven-case visual comparison and accessibility review remain
+open. This document records decision gates, not a certificate of production readiness.
 
 ## Gate 0 — Inspect upstream (no implementation assumptions)
 
