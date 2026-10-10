@@ -264,7 +264,25 @@ export function layoutDocument({ items, boxes = new Map(), width, options = {}, 
       height: box.ascent + box.descent, ascent: box.ascent, descent: box.descent, baseline: run.position.y, line: run.line,
       boundary: { policy: boundarySpacing, requestedLeft: box.leftGap, requestedRight: box.rightGap,
         appliedLeft: run.mathPaddingLeft, appliedRight: run.mathPaddingRight,
-        sourceBefore: box.boundary.before, sourceAfter: box.boundary.after } };
+        sourceBefore: box.boundary.before, sourceAfter: box.boundary.after,
+        requestedGlueLeft: box.boundary.leftGlue, requestedGlueRight: box.boundary.rightGlue,
+        appliedGlueLeft: run.mathPaddingLeft ? box.boundary.leftGlue : { natural: 0, stretch: 0, shrink: 0 },
+        appliedGlueRight: run.mathPaddingRight ? box.boundary.rightGlue : { natural: 0, stretch: 0, shrink: 0 } } };
+  });
+  // Budgets are not applied to coordinates: this stage composes at natural
+  // width. The quantities expose the future stretch/shrink problem explicitly.
+  const elasticBudgets = lines.map(line => {
+    const onLine = geometry.filter(item => item.line === line.index);
+    return {
+      line: line.index,
+      natural: onLine.reduce((n, item) => n +
+        item.boundary.appliedGlueLeft.natural + item.boundary.appliedGlueRight.natural, 0),
+      stretch: onLine.reduce((n, item) => n +
+        item.boundary.appliedGlueLeft.stretch + item.boundary.appliedGlueRight.stretch, 0),
+      shrink: onLine.reduce((n, item) => n +
+        item.boundary.appliedGlueLeft.shrink + item.boundary.appliedGlueRight.shrink, 0),
+      appliedAdjustment: 0,
+    };
   });
   ctx.renderedSize = { width: Math.max(0, ...ctx.runs.map(r => r.frame.x + r.frame.width)),
     height: Math.max(...lines.map(l => l.bottom)) + gap / 2 };
@@ -272,6 +290,7 @@ export function layoutDocument({ items, boxes = new Map(), width, options = {}, 
   const conflict = !!hasConflict(d) || repairFailures.length > 0;
   return { ...resultBase, status: conflict ? 'constraint-conflict' : 'composed',
     displayAllowed: !conflict || conflictPolicy === 'inspect', repairs, candidateCount: budget.candidates,
-    geometry, lines, overlaps, repairFailures, ...d, lineCount: ctx.lineCount, renderedSize: ctx.renderedSize,
+    geometry, lines, overlaps, elasticBudgets, repairFailures, ...d,
+    lineCount: ctx.lineCount, renderedSize: ctx.renderedSize,
     runs: ctx.runs, ctx };
 }
