@@ -1,5 +1,5 @@
 import { getSharedCanvasMeasurer } from '@non-standardworld/stone-engine.js';
-import { parseDocument, documentExamples } from './document-source.js';
+import { parseDocument, documentExamples, MathSourceError } from './document-source.js';
 import { layoutDocument } from './document-layout.js';
 import { mountDocument } from './document-render.js';
 
@@ -170,7 +170,8 @@ async function refresh() {
     $('document-metrics').textContent = '';
     $('document-status').textContent = 'エラー：' + error.message;
     $('document-status').dataset.state = 'error';
-    console.error(error);
+    // A user typing an unfinished delimiter is an expected validation state.
+    if (!(error instanceof MathSourceError)) console.error(error);
   } finally {
     running = false;
     disableActions(false);
