@@ -5,7 +5,7 @@ const MODES = ['plain', 'modern'];
 export const NATIVE_COMPARISON_MODES = Object.freeze(MODES);
 
 export function mountNativeComparison(items, mathById, {
-  width, fontSize, family, nativeMode = 'plain',
+  width, fontSize, family, nativeMode = 'plain', mathFlow = 'atomic',
 } = {}) {
   if (!MODES.includes(nativeMode)) throw new Error('Unknown native comparison mode');
   if (!(width > 0) || !(fontSize > 0)) throw new Error('Invalid comparison dimensions');
@@ -26,6 +26,7 @@ export function mountNativeComparison(items, mathById, {
     textSpacingTrim: nativeMode === 'modern' ? 'trim-start' : 'space-all',
   });
   root.dataset.nativeMode = nativeMode;
+  root.dataset.mathFlow = mathFlow;
   for (const item of items) {
     if (item.type === 'text') {
       const span = document.createElement('span');
@@ -99,14 +100,29 @@ export function measureNativeComparison(root, items) {
       right: Math.max(...ordered.map(rect => rect.x + rect.width)),
     };
   });
+  const mathFragments = [];
   const mathBoxes = [...root.querySelectorAll('[data-native-math]')].map(container => {
-    const svg = container.querySelector('svg');
-    if (!svg) throw new Error('Missing native MathJax SVG');
-    return { id: container.dataset.nativeMath, ...dimension(svg.getBoundingClientRect(), origin) };
+    const svgs = [...container.querySelectorAll('svg')];
+    if (!svgs.length) throw new Error('Missing native MathJax SVG');
+    const fragments = svgs.map((svg, index) => ({
+      id: container.dataset.nativeMath, fragmentIndex: index,
+      ...dimension(svg.getBoundingClientRect(), origin),
+    }));
+    mathFragments.push(...fragments);
+    return {
+      id: container.dataset.nativeMath,
+      fragmentCount: fragments.length,
+      x: Math.min(...fragments.map(box => box.x)),
+      y: Math.min(...fragments.map(box => box.y)),
+      width: Math.max(...fragments.map(box => box.x + box.width)) -
+        Math.min(...fragments.map(box => box.x)),
+      height: Math.max(...fragments.map(box => box.y + box.height)) -
+        Math.min(...fragments.map(box => box.y)),
+    };
   });
   const availableWidth = origin.width;
-  const mathOverflows = mathBoxes.filter(box => box.x < -0.5 ||
-    box.x + box.width > availableWidth + 0.5).map(box => box.id);
+  const mathOverflows = [...new Set(mathFragments.filter(box => box.x < -0.5 ||
+    box.x + box.width > availableWidth + 0.5).map(box => box.id))];
   const reconstructedSource = items.map(item => item.type === 'text' ?
     [...root.querySelectorAll('[data-native-text-start]')]
       .find(span => Number(span.dataset.nativeTextStart) === item.start)?.textContent :
@@ -115,6 +131,7 @@ export function measureNativeComparison(root, items) {
   return {
     engine: 'browser-inline-layout+MathJax',
     nativeMode: root.dataset.nativeMode,
+    mathFlow: root.dataset.mathFlow,
     // Browser support can change; never imply that "modern" was effective.
     cssSupport: {
       textAutospace: CSS.supports('text-autospace', 'normal'),
@@ -129,7 +146,8 @@ export function measureNativeComparison(root, items) {
     sourceMatches: reconstructedSource === items.map(item =>
       item.type === 'text' ? item.text : item.raw).join(''),
     mathCount: mathBoxes.length,
-    mathBoxes,
+    mathFragmentCount: mathFragments.length,
+    mathBoxes, mathFragments,
     mathOverflows,
     textBearingLineCount: textLines.length,
     textLines,

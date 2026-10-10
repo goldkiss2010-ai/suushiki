@@ -1,3 +1,5 @@
+> **更新（4系統比較）**: [現在の比較方針と4条件](four-way-comparison.md)を参照。従来の2系統比較にMathJax 4の式内改行とStoneの最小接続対照を追加しています。
+
 # 通常HTML + CSS + MathJax と SUUSHIKI の並列比較
 
 ## 目的

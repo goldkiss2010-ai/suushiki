@@ -2,7 +2,7 @@
 // Run after installing Playwright and its Chromium browser.
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { collisionCases, collisionCaseKeys } from '../public/collision-cases.js';
 
@@ -48,7 +48,7 @@ try {
   await ready(page);
   const source = await page.locator('#document-source').inputValue();
   assert.ok(source.includes('\\(f(x)=x^2\\)'));
-  assert.equal(await page.locator('[data-document-math]').count(), 7);
+  assert.equal(await page.locator('#document-output [data-document-math]').count(), 7);
   const summary = JSON.parse(await page.locator('#document-metrics').textContent()).summary;
   assert.equal(summary.source, source);
   assert.equal(summary.geometry.length, 7);
@@ -57,8 +57,15 @@ try {
   assert.equal(nativeInitial.sourceMatches, true);
   assert.equal(nativeInitial.mathCount, summary.geometry.length);
   assert.equal(nativeInitial.nativeMode, 'plain');
+  const initialFourWay = JSON.parse(await page.locator('#document-metrics').textContent());
+  assert.equal(initialFourWay.nativeFlowComparison.mathFlow, 'breakable');
+  assert.equal(initialFourWay.nativeFlowComparison.sourceMatches, true);
+  assert.equal(initialFourWay.nativeFlowComparison.mathCount, initialFourWay.summary.geometry.length);
+  assert.equal(initialFourWay.stoneControl.engine.includes('not stock Stone'), true);
+  assert.equal(await page.locator('#document-native-flow-output [data-native-math]').count(), initialFourWay.summary.geometry.length);
+  assert.equal(await page.locator('#document-stone-output [data-document-math]').count(), initialFourWay.summary.geometry.length);
   assert.ok(nativeInitial.textBearingLineCount > 0);
-  assert.equal(await page.locator('[data-native-math]').count(), summary.geometry.length);
+  assert.equal(await page.locator('#document-native-output [data-native-math]').count(), summary.geometry.length);
   await mkdir('artifacts', { recursive: true });
   await page.screenshot({ path: 'artifacts/suushiki-document-480.png', fullPage: true });
 
@@ -68,27 +75,31 @@ try {
     input.dispatchEvent(new Event('input', { bubbles: true }));
   });
   await ready(page);
-  assert.equal(await page.locator('[data-document-math]').count(), 7);
+  assert.equal(await page.locator('#document-output [data-document-math]').count(), 7);
   assert.equal(await page.locator('#document-source').inputValue(), source);
-  const width = await page.locator('.document-canvas').evaluate(el => el.getBoundingClientRect().width);
+  const width = await page.locator('#document-output .document-canvas').evaluate(el => el.getBoundingClientRect().width);
   assert.equal(width, 240);
-  const nativeWidth = await page.locator('.native-comparison-canvas').evaluate(el =>
+  const nativeWidth = await page.locator('#document-native-output .native-comparison-canvas').evaluate(el =>
     el.getBoundingClientRect().width);
   assert.equal(nativeWidth, 240);
+  const nativeFlowWidth = await page.locator('#document-native-flow-output .native-comparison-canvas')
+    .evaluate(el => el.getBoundingClientRect().width);
+  assert.equal(nativeFlowWidth, 240);
   assert.equal(JSON.parse(await page.locator('#document-metrics').textContent()).nativeComparison.sourceMatches, true);
   await page.screenshot({ path: 'artifacts/suushiki-document-240.png', fullPage: true });
 
   // Syntax errors cannot render a misleading previous document.
   await page.locator('#document-source').fill('途中で終わる数式 \\(x');
   await page.locator('#document-status[data-state="error"]').waitFor({ timeout: 15000 });
-  assert.equal(await page.locator('[data-document-math]').count(), 0);
-  assert.equal(await page.locator('[data-native-math]').count(), 0);
+  assert.equal(await page.locator('#document-output [data-document-math]').count(), 0);
+  assert.equal(await page.locator('#document-native-output [data-native-math]').count(), 0);
+  assert.equal(await page.locator('#document-stone-output [data-document-math]').count(), 0);
   assert.equal(await page.locator('#document-copy-source').inputValue(), '途中で終わる数式 \\(x');
 
   // A different example should recover without reloading the page.
   await page.locator('#document-example').selectOption('boundaries');
   await ready(page);
-  assert.ok(await page.locator('[data-document-math]').count() > 1);
+  assert.ok(await page.locator('#document-output [data-document-math]').count() > 1);
 
   // Real MathJax + Stone comparison for all seven collision classes.
   await page.locator('#document-font-size').selectOption('17');
@@ -111,11 +122,13 @@ try {
     const state = JSON.parse(await page.locator('#document-metrics').textContent());
     assert.equal(state.summary.status, 'composed', key);
     assert.equal(state.summary.geometry.length, fixture.expectedFormulaCount, key);
-    assert.equal(await page.locator('[data-document-math]').count(), fixture.expectedFormulaCount, key);
-    assert.equal(await page.locator('[data-native-math]').count(), fixture.expectedFormulaCount, key);
+    assert.equal(await page.locator('#document-output [data-document-math]').count(), fixture.expectedFormulaCount, key);
+    assert.equal(await page.locator('#document-native-output [data-native-math]').count(), fixture.expectedFormulaCount, key);
     assert.equal(state.nativeComparison.mathCount, fixture.expectedFormulaCount, key);
+    assert.equal(state.nativeFlowComparison.mathCount, fixture.expectedFormulaCount, key);
+    assert.equal(state.nativeFlowComparison.sourceMatches, true, key);
     assert.equal(state.nativeComparison.sourceMatches, true, key);
-    const drawn = await page.locator('.document-canvas').evaluate(canvas => {
+    const drawn = await page.locator('#document-output .document-canvas').evaluate(canvas => {
       const base = canvas.getBoundingClientRect();
       return [...canvas.querySelectorAll('[data-document-math]')].map(svg => {
         const rect = svg.getBoundingClientRect();
@@ -155,10 +168,12 @@ try {
       }, tooNarrow, { timeout: 30000 });
       const tooNarrowState = JSON.parse(await page.locator('#document-metrics').textContent());
       assert.equal(tooNarrowState.summary.status, 'unsatisfied-width');
-      assert.equal(await page.locator('[data-document-math]').count(), 0);
-      assert.equal(await page.locator('[data-native-math]').count(), fixture.expectedFormulaCount);
+      assert.equal(await page.locator('#document-output [data-document-math]').count(), 0);
+      assert.equal(await page.locator('#document-native-output [data-native-math]').count(), fixture.expectedFormulaCount);
       assert.equal(tooNarrowState.nativeComparison.sourceMatches, true);
       assert.equal(tooNarrowState.nativeComparison.mathCount, fixture.expectedFormulaCount);
+      assert.equal(tooNarrowState.nativeFlowComparison.mathCount, fixture.expectedFormulaCount);
+      assert.equal(tooNarrowState.nativeFlowComparison.sourceMatches, true);
       assert.ok(tooNarrowState.nativeComparison.mathOverflows.length > 0,
         'native control should independently reveal the over-wide formula');
       assert.equal(await page.locator('#document-copy-source').inputValue(), fixture.source);
@@ -193,7 +208,7 @@ try {
   assert.equal(mathBefore.boundary.appliedLeft, 17 * 0.25);
   assert.equal(mathBefore.boundary.appliedRight, 17 * 0.25);
   assert.ok(!(await page.locator('#document-source').inputValue()).includes(' \\('));
-  const actualBox = await page.locator('[data-document-math]').evaluate(svg => {
+  const actualBox = await page.locator('#document-output [data-document-math]').evaluate(svg => {
     const rect = svg.getBoundingClientRect();
     const base = svg.parentElement.getBoundingClientRect();
     return { x: rect.x - base.x, width: rect.width };
@@ -299,7 +314,7 @@ try {
   assert.equal(nativePlain.nativeComparison.sourceMatches, true);
   assert.equal(nativePlain.nativeComparison.mathCount, 1);
   assert.ok(nativePlain.nativeComparison.textBearingLineCount > 0);
-  const plainSourceText = await page.locator('.native-comparison-canvas [data-native-text-start]')
+  const plainSourceText = await page.locator('#document-native-output .native-comparison-canvas [data-native-text-start]')
     .allTextContents();
   assert.equal(plainSourceText.join(''),
     nativePlain.source.split(/\\\([^]*?\\\)/u).join(''));
@@ -327,8 +342,110 @@ try {
   assert.ok((await page.locator('#document-native-diagnostic').textContent()).includes('text-autospace'));
   await page.screenshot({ path: 'artifacts/suushiki-native-modern-180.png', fullPage: true });
 
+
+  // Benchmark: MathJax browser-flow renderer must be a *different* output
+  // mode, not an alias of the atomic SVG. Compare at a mobile-width column.
+  await page.locator('#document-example').selectOption('t06a');
+  await page.locator('#document-width').evaluate(input => {
+    input.value = '160';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await page.waitForFunction(() => {
+    const raw = document.getElementById('document-metrics').textContent;
+    return document.getElementById('document-status').dataset.state === 'ready' &&
+      raw && JSON.parse(raw).settings.width === 160 &&
+      document.getElementById('document-example').value === 't06a';
+  }, null, { timeout: 30000 });
+  const fourWayNarrow = JSON.parse(await page.locator('#document-metrics').textContent());
+  assert.equal(fourWayNarrow.summary.status, 'unsatisfied-width');
+  assert.equal(fourWayNarrow.nativeComparison.mathCount, 1);
+  assert.equal(fourWayNarrow.nativeFlowComparison.mathCount, 1);
+  assert.equal(fourWayNarrow.nativeFlowComparison.sourceMatches, true);
+  assert.equal(fourWayNarrow.nativeFlowComparison.mathFlow, 'breakable');
+  assert.equal(fourWayNarrow.nativeComparison.mathFragmentCount, 1);
+  assert.ok(fourWayNarrow.nativeFlowComparison.mathFragmentCount > 1,
+    'MathJax inline break must actually generate separate SVG fragments');
+  assert.equal(await page.locator('#document-output [data-document-math]').count(), 0);
+  assert.equal(await page.locator('#document-native-flow-output [data-native-math]').count(), 1);
+  assert.ok((await page.locator('#document-fourway-diagnostic').textContent())
+    .includes('式内改行あり'));
+  await page.screenshot({ path: 'artifacts/suushiki-four-way-mobile.png', fullPage: true });
+
+
+  // A machine-readable experiment matrix, not a winner/loser scoreboard.
+  // The full JSON diagnostics can be inspected in the workbench itself.
+  const matrix = {
+    schemaVersion: 1,
+    cases: [], comparisonNotes: [
+      'HTML count excludes blank lines and math-only lines',
+      'Stone candidate requires the SUUSHIKI math marker adapter',
+      'Flowable MathJax generates a different SVG representation',
+    ],
+  };
+  for (const key of ['t02c', 't03a', 't04', 't06a']) {
+    const fixture = collisionCases[key];
+    await page.locator('#document-example').selectOption(key);
+    for (const targetWidth of [160, 240, 480]) {
+      await page.locator('#document-width').evaluate((input, value) => {
+        input.value = String(value);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      }, targetWidth);
+      await page.waitForFunction(({ expectedSource, targetWidth }) => {
+        const status = document.getElementById('document-status');
+        const raw = document.getElementById('document-metrics').textContent;
+        if (status.dataset.state !== 'ready' || !raw) return false;
+        const record = JSON.parse(raw);
+        return record.settings.width === targetWidth &&
+          record.source === expectedSource;
+      }, { expectedSource: fixture.source, targetWidth }, { timeout: 30000 });
+      const observation = JSON.parse(await page.locator('#document-metrics').textContent());
+      assert.equal(observation.nativeFlowComparison.sourceMatches, true);
+      assert.equal(observation.nativeComparison.sourceMatches, true);
+      matrix.cases.push({
+        caseId: key, widthPx: targetWidth, fontSizePx: observation.settings.fontSize,
+        originalSource: observation.source,
+        suushiki: {
+          status: observation.summary.status,
+          lineCount: observation.summary.lineCount ?? null,
+          formulas: observation.summary.geometry?.length ?? null,
+          kinsoku: observation.summary.boundaryViolations?.length ?? null,
+          overflows: observation.summary.horizontalOverflows?.length ?? null,
+          lineBoxOverlaps: observation.summary.overlaps?.length ?? null,
+        },
+        stoneCandidate: observation.stoneControl,
+        htmlAtomic: {
+          fragmentCount: observation.nativeComparison.mathFragmentCount,
+          textBearingLineCount: observation.nativeComparison.textBearingLineCount,
+          horizontalOverflow: observation.nativeComparison.horizontalOverflow,
+          mathOverflows: observation.nativeComparison.mathOverflows,
+        },
+        htmlFlowable: {
+          fragmentCount: observation.nativeFlowComparison.mathFragmentCount,
+          textBearingLineCount: observation.nativeFlowComparison.textBearingLineCount,
+          horizontalOverflow: observation.nativeFlowComparison.horizontalOverflow,
+          mathOverflows: observation.nativeFlowComparison.mathOverflows,
+        },
+      });
+    }
+  }
+  assert.equal(matrix.cases.length, 12);
+  const tallCases = matrix.cases.filter(row => row.caseId === 't04');
+  assert.ok(tallCases.every(row => row.stoneCandidate.overlaps?.length > 0));
+  assert.ok(tallCases.every(row => row.suushiki.lineBoxOverlaps === 0),
+    'adaptive line advance should remove overlapping occupied line boxes');
+  await writeFile('artifacts/suushiki-four-way-matrix.json',
+    JSON.stringify(matrix, null, 2) + '\n');
+  // Expose concise data even when a client cannot download Actions artifacts.
+  console.log('FOUR_WAY_MATRIX_JSON=' + JSON.stringify(matrix.cases.map(row => ({
+    caseId: row.caseId, widthPx: row.widthPx,
+    suushiki: [row.suushiki.status, row.suushiki.lineCount, row.suushiki.lineBoxOverlaps],
+    stoneCandidate: [row.stoneCandidate.status, row.stoneCandidate.lineCount, row.stoneCandidate.overlaps?.length ?? null],
+    nativeAtomic: [row.htmlAtomic.fragmentCount, row.htmlAtomic.horizontalOverflow],
+    nativeFlowable: [row.htmlFlowable.fragmentCount, row.htmlFlowable.horizontalOverflow],
+  }))));
+
   assert.deepEqual(errors, []);
-  console.log('Browser smoke checks passed; screenshots saved in artifacts/.');
+  console.log('Browser smoke checks passed; screenshots and matrix saved in artifacts/.');
 } finally {
   if (browser) await browser.close();
   server.kill();
