@@ -72,6 +72,7 @@ export function makeIsolationCase({
   const mathItems = items.filter(item => item.type === 'math');
   if (mathItems.length !== 1) throw new Error('Isolation control requires exactly one inline formula');
   const root = document.createElement('div');
+  root.className = 'native-comparison-canvas css-isolation-canvas';
   root.lang = 'ja';
   root.dataset.variant = variant;
   root.dataset.lineBreak = lineBreak;
