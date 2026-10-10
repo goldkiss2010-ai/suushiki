@@ -193,7 +193,9 @@ try {
   const b = JSON.parse(await page.locator('#document-metrics').textContent());
   assert.equal(b.summary.geometry[0].boundary.requestedLeft, 0);
   assert.equal(b.summary.geometry[0].boundary.requestedRight, 0);
-  assert.equal(b.runs.filter(run => run.char === ' ').length, 2);
+  assert.ok(b.source.includes('関数 '));
+  assert.ok(b.source.includes(' を考える。'));
+  assert.equal(b.summary.geometry[0].width, mathBefore.width);
 
   await page.locator('#document-example').selectOption('t02c');
   await page.waitForFunction(() => {
