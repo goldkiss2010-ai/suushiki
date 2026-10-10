@@ -56,7 +56,7 @@ TeX のインストールがある環境では、次のコマンドで本当に 
 
     npm run bench:latex -- --write
 
-lualatex、jlreq および amssymb が必要。Node.jsのみの環境でも npm test により保存された実測ログと数値を照合する。GitHub Actions の通常テストでは TeX 全体のインストールは行わず、実ブラウザーの MathJax と比較モジュールを検査する。
+lualatex、jlreq および amssymb が必要。Node.jsのみの環境でも npm test により保存された実測ログと数値を照合する。GitHub Actions の通常テストでは TeX 全体のインストールは行わず、実ブラウザーの MathJax と比較モジュールを検査する。GitHub の Actions から「Reproduce LuaLaTeX reference」を手動実行すると、別ジョブで TeX Live を導入し、実際の TeX バージョン・測定値・保存スナップショットとの差を artifact に残す（ランナーのフォント差により数値が異なる場合がある）。
 
 ## 解釈してはいけないこと
 
