@@ -1,5 +1,8 @@
 # Research plan and decision gates
 
+> **現在の主目的（2026-10-11）**：この文書は、当初の「実装の可否を判断する開発計画」を残すための**歴史的な資料**です。現行の成果物は[日本語調査記録](research/README.md)です。新しい衝突の探索・新規組版エンジン開発は現在の目標に含めません。以下にある「次の段階」「実装する」「Gate」は当時の検討方針であり、現在の実行予定ではありません。
+
+
 ## Existing rules collected — 2026-10-10
 
 Start with [the mathematical typesetting research collection (日本語)](math-typesetting/README.md).
