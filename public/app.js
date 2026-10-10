@@ -1,6 +1,8 @@
 import { layoutText, getSharedCanvasMeasurer, svgString } from '/vendor/stone/index.js';
 import { layoutInlineBox, inlineBoxSvg, mountInlineMath } from './inline-box.js';
 
+import { paragraphSource } from './source.js';
+
 const $ = id => document.getElementById(id);
 const cases = [
   ['simple', 'f(x)=x^2'],
@@ -87,6 +89,8 @@ async function update() {
   if (running) return;
   running = true;
   $('download').disabled = true;
+  $('copy-paragraph').disabled = $('copy-tex').disabled = true;
+  $('copy-status').textContent = '';
   $('status').dataset.state = 'busy';
   try {
     let version;
@@ -107,6 +111,7 @@ async function update() {
     $('status').textContent = '計測完了：各欄の配置結果と制約判定を確認してください。';
     $('status').dataset.state = 'ready';
     $('download').disabled = false;
+    $('copy-paragraph').disabled = $('copy-tex').disabled = false;
   } catch (error) {
     $('status').textContent = `エラー：${error.message}`;
     $('status').dataset.state = 'error';
@@ -151,7 +156,7 @@ function renderInlineMath(settings, options, measured) {
   }[boundaryCase];
   const result = layoutInlineBox({ before, after, box: { id: selected.id, tex: selected.tex,
     width: selected.width, ascent: selected.ascent, descent: selected.descent },
-    width: settings.width, options, measurer, policy: $('math-line-policy').value, conflictPolicy: $('conflict-policy').value });
+    width: settings.width, options, measurer, policy: $('math-line-policy').value, conflictPolicy: $('conflict-policy').value, boundaryPolicy: $('boundary-policy').value });
   const output = $('inline-math-output');
   output.style.width = `${settings.width}px`;
   output.replaceChildren();
@@ -162,6 +167,8 @@ function renderInlineMath(settings, options, measured) {
   const { ctx, ...data } = result;
   data.formula = { id: selected.id, tex: selected.tex };
   data.boundaryCase = boundaryCase;
+  data.copyText = paragraphSource(result.source);
+  $('copy-source').value = data.copyText;
   if (svg) {
     const actual = svg.querySelector('[data-inline-math]').getBoundingClientRect();
     data.renderedBox = { width: actual.width, height: actual.height };
@@ -179,10 +186,24 @@ function renderInlineMath(settings, options, measured) {
     : result.status === 'unsatisfied-width'
     ? `幅制約未充足：数式 ${rounded(result.requiredWidth)} px が組版幅 ${result.availableWidth} px を超えています。原式を保持しています。`
     : result.overlaps.length ? `固定行送りで ${result.overlaps.length} 組、行の占有領域が重なっています。`
-    : '数式の配置完了：行の占有領域の重なりはありません。';
+    : `数式の配置完了：行の占有領域の重なりはありません。${result.repair?.applied ? '禁則を満たす行分割に修正しました。' : ''}`;
   $('inline-math-status').dataset.result = result.status === 'composed' && !result.overlaps.length ? 'ok' : 'warning';
   return data;
 }
+
+async function copyCurrent(formulaOnly) {
+  const text = formulaOnly ? record.inlineMath.formula.tex : record.inlineMath.copyText;
+  try {
+    await navigator.clipboard.writeText(text);
+    $('copy-status').textContent = formulaOnly ? '数式の LaTeX をコピーしました。' : '文章と数式をコピーしました。';
+  } catch {
+    $('copy-source').focus();
+    $('copy-source').select();
+    $('copy-status').textContent = 'クリップボードへの書き込みができませんでした。コピー用原文を選択しました。Ctrl+C でコピーできます。';
+  }
+}
+$('copy-paragraph').addEventListener('click', () => copyCurrent(false));
+$('copy-tex').addEventListener('click', () => copyCurrent(true));
 
 $('download').addEventListener('click', () => {
   const url = URL.createObjectURL(new Blob([JSON.stringify(record, null, 2)], { type: 'application/json' }));
@@ -200,7 +221,7 @@ try {
   if (!window.MathJax?.startup?.promise) throw new Error('MathJax を読み込めませんでした。npm ci と再起動を確認してください。');
   await window.MathJax.startup.promise;
   if (!measurer) throw new Error('Canvas 2D が使えるブラウザーで開いてください。');
-  for (const id of ['width', 'font-size', 'font', 'frames', 'source', 'box-width', 'box-ascent', 'box-descent', 'line-policy', 'inline-formula', 'math-line-policy', 'boundary-case', 'conflict-policy']) {
+  for (const id of ['width', 'font-size', 'font', 'frames', 'source', 'box-width', 'box-ascent', 'box-descent', 'line-policy', 'inline-formula', 'math-line-policy', 'boundary-case', 'conflict-policy', 'boundary-policy']) {
     $(id).addEventListener('input', update);
   }
   document.fonts.addEventListener('loadingdone', update);

@@ -7,6 +7,7 @@ const compose = overrides => layoutInlineBox({
   before: '式の位置を確認する。ここに',
   after: 'を置き、（括弧）と句読点の折り返しを観察します。次の行も確認します。',
   box: { id: 'test-box', width: 104, ascent: 39, descent: 49 }, width: 480,
+  boundaryPolicy: 'stone',
   options: { fontSize: 20, lineHeightScale: 1.6 }, measurer: new FixedMeasurer(), ...overrides,
 });
 
@@ -109,4 +110,43 @@ test('withholding a conflicting candidate preserves diagnostics and source, then
   assert.equal(recovered.status, 'composed');
   assert.equal(recovered.displayAllowed, true);
   assert.ok(inlineBoxSvg(recovered).includes('data-inline-box'));
+});
+
+
+test('repair joins an atomic formula and its punctuation when Stone leaves an illegal break', () => {
+  for (const [before, after, width] of [['説明の後で', '。次の条件を考える。', 124], ['条件は（', '）で与えられる。', 144]]) {
+    const repaired = compose({ before, after, width, boundaryPolicy: 'repair' });
+    assert.equal(repaired.status, 'composed');
+    assert.deepEqual(repaired.boundaryViolations, []);
+    assert.deepEqual(repaired.horizontalOverflows, []);
+    assert.equal(repaired.geometry.width, 104);
+    assert.equal(repaired.ctx.text, before + '\uFFFC' + after);
+  }
+});
+
+test('repair either meets all constraints or retains the diagnostic candidate at each width', () => {
+  let count = 0;
+  for (let width = 104; width <= 180; width++) {
+    const result = compose({ before: '条件は（', after: '）で与えられる。', width, boundaryPolicy: 'repair' });
+    if (result.repair.applied) count++;
+    assert.equal(result.geometry.width, 104);
+    assert.equal(result.ctx.text, '条件は（\uFFFC）で与えられる。');
+    if (result.repair.applied) {
+      assert.equal(result.status, 'composed');
+      assert.deepEqual(result.horizontalOverflows, []);
+      assert.deepEqual(result.boundaryViolations, []);
+    }
+  }
+  assert.ok(count > 0);
+  const impossible = compose({ before: '（', after: '）', width: 104, boundaryPolicy: 'repair' });
+  assert.equal(impossible.status, 'constraint-conflict');
+  assert.equal(impossible.repair.reason, 'no-fitting-partition');
+});
+
+
+import { paragraphSource } from '../public/source.js';
+test('copy serialization preserves text and TeX even for an undisplayable formula', () => {
+  const result = compose({ before: '条件は（', after: '）です。', width: 40,
+    box: { id: 'fraction', tex: String.raw`\frac{1}{x}`, width: 104, ascent: 21, descent: 6 } });
+  assert.equal(paragraphSource(result.source), String.raw`条件は（\(\frac{1}{x}\)）です。`);
 });

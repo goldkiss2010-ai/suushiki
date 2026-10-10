@@ -132,8 +132,16 @@ npm.cmd run dev
 
 依存導入、ローカル HTTP 配信、和文の再組版、４式の SVG 表示・寸法測定、条件変更と JSON 保存を確認するための構成です。実測結果は [standalone-check.md](standalone-check.md) を参照してください。
 
-接続結果は [inline-box-check.md](inline-box-check.md)、[inline-math-check.md](inline-math-check.md)、[collision-check.md](collision-check.md) を参照してください。１つの数式の接続と境界の制約判定を実装しています。図表配置、統合したコピー・アクセシビリティは未実装です。
+接続結果は [inline-box-check.md](inline-box-check.md)、[inline-math-check.md](inline-math-check.md)、[collision-check.md](collision-check.md) を参照してください。１つの数式の接続と境界の制約判定を実装しています。文章と LaTeX のコピーにも対応しています。図表配置と数式の読み上げは未実装です。
 
 ### 衝突時の表示を切り替える
 
 実数式の欄で「数式を囲む括弧」を選び、狭い幅で警告を確認する。「禁則・横幅の衝突時」を「表示を保留」にすると、違反する候補の描画が止まり、原文と判定は残る。幅を広げて禁則・横幅を満たすと表示が再開する。「候補を表示して観察」に戻すと従来の比較表示になる。固定行送りの縦の重なりは別の警告として扱う。
+
+### 禁則修正とコピー
+
+「行分割」は既定で「禁則を満たす分割を探す」。元の Stone の候補で違反が出たときだけ、Stone 自身の行頭・行末の約物処理を使って分割を探す。「Stone の候補をそのまま観察」を選ぶと修正前と比較できる。式と約物が一行に収まらない幅では警告が残る。
+
+「文章と数式をコピー」は数式を `\(LaTeX\)` として文章に戻す。「数式の LaTeX をコピー」は式だけを取得する。描画が保留される幅でもコピーできる。クリップボードが使えない場合はコピー用原文欄を選択して Ctrl+C を使う。表示された SVG の一部分をドラッグ選択して数式をコピーする機能ではない。
+
+今回の一区切りと制約は [prototype-check.md](prototype-check.md) を参照。
