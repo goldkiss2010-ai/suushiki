@@ -6,6 +6,7 @@ import { collisionCases } from './collision-cases.js';
 import { compareWithLatex, comparisonText } from './latex-compare.js';
 import { mountNativeComparison, measureNativeComparison, nativeComparisonSummary } from './native-comparison.js';
 import { typesetFlowableMath } from './mathjax-flow.js';
+import { inspectNativeLineEdges, inspectStoneLineEdges } from './line-edge-analysis.js';
 
 const $ = id => document.getElementById(id);
 const measurer = getSharedCanvasMeasurer();
@@ -221,6 +222,26 @@ async function refresh() {
       record.nativeFlowComparison = nativeFlowMeasurement;
       record.flowDetails = flowDetails;
       record.stoneControl = stoneSummary;
+      // Uses identical source offsets and one explicitly named Stone kinsoku
+      // probe policy. This is an observation, not a generic JLREQ verdict.
+      const edgeResults = {
+        native: inspectNativeLineEdges(nativeElement, items, boxes),
+        stone: inspectStoneLineEdges(stoneControl, items),
+        suushiki: inspectStoneLineEdges(result, items),
+      };
+      record.edgeComparison = edgeResults;
+      const edgeLine = (label, report) => label + '：' + report.status +
+        '／行頭位置 ' + report.lines.slice(0, 12).map(l => l.first).join(', ') +
+        (report.lines.length > 12 ? ' …' : '') +
+        '／禁則プローブ ' + report.violations.map(v =>
+          v.edge + '「' + v.char + '」@' + v.offset).join('、');
+      $('document-edge-diagnostic').textContent = [
+        edgeLine('通常HTML・数式非分割', edgeResults.native),
+        edgeLine('Stone候補', edgeResults.stone),
+        edgeLine('SUUSHIKI', edgeResults.suushiki),
+        '行頭位置は原文のUTF-16文字位置。HTMLはDOM Range、数式は計測済み基線を参照。',
+        'MathJaxの式内改行ありは、この単一数式ボックス用プローブの適用範囲外。',
+      ].join('\n');
       if (latexReference) {
         const comparison = compareWithLatex(result, config, latexReference, collisionCases.t02d.source);
         record.latexComparison = comparison;
@@ -245,6 +266,7 @@ async function refresh() {
     $('document-stone-output').replaceChildren();
     $('document-native-diagnostic').textContent = '';
     $('document-fourway-diagnostic').textContent = '';
+    $('document-edge-diagnostic').textContent = '';
     $('document-diagnostic').textContent = '';
     $('document-metrics').textContent = '';
     $('document-latex-compare').textContent = '';
