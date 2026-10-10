@@ -4,6 +4,10 @@ on:
   push:
   pull_request:
 
+concurrency:
+  group: suushiki-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   node:
     runs-on: ubuntu-latest
@@ -24,6 +28,7 @@ jobs:
           node --check public/document-workbench.js
 
   browser:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
