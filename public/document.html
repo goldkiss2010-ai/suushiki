@@ -103,12 +103,21 @@
         <div class="viewport document-viewport"><div id="document-output" aria-hidden="true"></div></div>
       </div>
       <div class="document-comparison-panel">
-        <h3>通常HTML + CSS + MathJax</h3>
+        <h3>通常HTML + MathJax（数式非分割）</h3>
         <div class="viewport document-viewport"><div id="document-native-output"></div></div>
       </div>
+      <div class="document-comparison-panel">
+        <h3>通常HTML + MathJax（式内改行を許す）</h3>
+        <div class="viewport document-viewport"><div id="document-native-flow-output"></div></div>
+      </div>
+      <div class="document-comparison-panel">
+        <h3>Stoneの改行候補 + MathJax（最小補正）</h3>
+        <div class="viewport document-viewport"><div id="document-stone-output" aria-hidden="true"></div></div>
+      </div>
     </div>
-    <p class="note">原文、文字サイズ、幅、数式の内容とMathJaxの変換結果は共通です。SUUSHIKI側は独自の行分割と配置、HTML側はブラウザー自身の改行・行送りです。HTML側にSUUSHIKIの自動アキは加えません。</p>
+    <p class="note">4系統とも原文・文字サイズ・幅・数式ソースを共有します。「式内改行を許す」だけはMathJaxをその設定で別途組版します。Stone候補はSUUSHIKIの測定アダプターを使い、禁則修復や可変行高を加えない対照で、Stone単体そのものではありません。</p>
     <pre id="document-native-diagnostic" aria-live="polite"></pre>
+    <pre id="document-fourway-diagnostic" aria-live="polite"></pre>
     <p class="note">HTML側の描画は直接テキストを含むため選択できます。SUUSHIKI側は検証用SVGで、原文コピーは下の欄から行います。固定行送りでの重なりは警告として残します。</p>
     <div class="document-actions">
       <button id="document-copy" type="button" disabled>原文をコピー</button>
