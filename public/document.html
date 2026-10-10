@@ -30,6 +30,7 @@
         <option value="t02a">T02a 数式境界：空白なし</option>
         <option value="t02b">T02b 数式境界：空白あり</option>
         <option value="t02c">T02c 句読点・括弧</option>
+        <option value="t02d">T02d LaTeXの行数比較（2文）</option>
         <option value="t03a">T03a 数式直後の句点</option>
         <option value="t03b">T03b 括弧の禁則</option>
         <option value="t04">T04 高い式の行送り</option>
@@ -67,7 +68,8 @@
         <select id="document-boundary-spacing">
           <option value="none" selected>原文のみ（既定）</option>
           <option value="quarter">両側 1/4 em（約物にも）</option>
-          <option value="contextual">文字符号のみ 1/4 em（約物を除外）</option>
+          <option value="contextual">文字・数字のみ 1/4 em（約物を除外）</option>
+          <option value="elastic">TeX風の伸縮予算を記録（配置は自然幅）</option>
         </select>
       </label>
       <label>欧文単語
@@ -84,6 +86,11 @@
     <h2>組版プレビュー</h2>
     <p class="note">自動アキは本文サイズに基づく試験的な規則です。原文の空白は置換せず、明示空白・改行の隣には自動アキを加えません。「制約を考慮する」では折り返し後の行端アキを再計測します。</p>
     <p id="document-diagnostic" role="status"></p>
+    <details open>
+      <summary>LuaLaTeX + jlreq 実測値との比較</summary>
+      <pre id="document-latex-compare" aria-live="polite"></pre>
+      <p class="note">TeX の zw と画面の CSS em は厳密には同じ単位ではありません。書体が異なる行数・総幅は差を観察するためのもので、一致・不一致だけで合否を決めません。</p>
+    </details>
     <div class="viewport document-viewport"><div id="document-output" aria-hidden="true"></div></div>
     <p class="note">描画は検証用です。文章・数式のコピーは下の原文から行います。固定行送りでの領域重なりは警告として残します。</p>
     <div class="document-actions">

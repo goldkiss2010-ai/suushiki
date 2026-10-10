@@ -1,0 +1,14 @@
+SUUSHIKI|parameter|mathsurround|0.0pt
+SUUSHIKI|parameter|xkanjiskip|2.5pt plus 2.5pt minus 1.25pt
+SUUSHIKI|parameter|kanjiskip|0.0pt plus 2.5pt
+SUUSHIKI|parameter|zw|10.0pt
+SUUSHIKI|hbox|t02a|113.00021pt
+SUUSHIKI|hbox|t02b|114.66022pt
+SUUSHIKI|hbox|t02c|133.56717pt
+SUUSHIKI|hbox|t07|121.68777pt
+SUUSHIKI|part|left|20.0pt
+SUUSHIKI|part|math|43.00021pt
+SUUSHIKI|part|right|45.0pt
+SUUSHIKI|paragraph|t02a-twice-12zw|2|1690829|163840
+SUUSHIKI|paragraph|t02a-twice-24zw|1|576717|163840
+SUUSHIKI|paragraph|t02b-twice-12zw|2|1690829|163840

@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "provenance": {
+    "tool": "LuaHBTeX 1.18.0 (TeX Live 2025/dev/Debian)",
+    "class": "jlreq 2024/10/04",
+    "font": "jlreq class defaults; not matched to browser font",
+    "texSource": "benchmarks/latex/reference.tex",
+    "measured": "2026-10-11",
+    "note": "Machine-measured via \\typeout and \\directlua; numerical baseline is environment-specific."
+  },
+  "parameters": {
+    "zwPt": 10,
+    "mathsurroundPt": 0,
+    "xkanjiskip": {
+      "naturalPt": 2.5,
+      "stretchPt": 2.5,
+      "shrinkPt": 1.25
+    },
+    "kanjiskip": {
+      "naturalPt": 0,
+      "stretchPt": 2.5,
+      "shrinkPt": 0
+    }
+  },
+  "hboxesPt": {
+    "t02a": 113.00021,
+    "t02b": 114.66022,
+    "t02c": 133.56717,
+    "t07": 121.68777
+  },
+  "partsPt": {
+    "left": 20,
+    "math": 43.00021,
+    "right": 45
+  },
+  "paragraphs": {
+    "t02a-twice-12zw": {
+      "widthZw": 12,
+      "lineCount": 2,
+      "heightSp": 1690829,
+      "depthSp": 163840
+    },
+    "t02a-twice-24zw": {
+      "widthZw": 24,
+      "lineCount": 1,
+      "heightSp": 576717,
+      "depthSp": 163840
+    },
+    "t02b-twice-12zw": {
+      "widthZw": 12,
+      "lineCount": 2,
+      "heightSp": 1690829,
+      "depthSp": 163840
+    }
+  }
+}

@@ -1,0 +1,31 @@
+% SUUSHIKI reproducible LuaLaTeX+jlreq reference, no custom spacing rules.
+% Compile: lualatex -halt-on-error -interaction=nonstopmode reference.tex
+\documentclass[paper=a5,fontsize=10pt]{jlreq}
+\usepackage{amssymb}
+\begin{document}
+\typeout{SUUSHIKI|parameter|mathsurround|\the\mathsurround}
+\typeout{SUUSHIKI|parameter|xkanjiskip|\ltjgetparameter{xkanjiskip}}
+\typeout{SUUSHIKI|parameter|kanjiskip|\ltjgetparameter{kanjiskip}}
+\typeout{SUUSHIKI|parameter|zw|\the\zw}
+\setbox0=\hbox{関数\(f(x)=x^2\)を考える。}
+\typeout{SUUSHIKI|hbox|t02a|\the\wd0}
+\setbox0=\hbox{関数 \(f(x)=x^2\) を考える。}
+\typeout{SUUSHIKI|hbox|t02b|\the\wd0}
+\setbox0=\hbox{値\(x\)、\(y\)。また（\(z\)）を用いる。}
+\typeout{SUUSHIKI|hbox|t02c|\the\wd0}
+\setbox0=\hbox{実数\(\mathbb{R}\)上で\(f(x)\)を考える。}
+\typeout{SUUSHIKI|hbox|t07|\the\wd0}
+\setbox0=\hbox{関数}
+\typeout{SUUSHIKI|part|left|\the\wd0}
+\setbox0=\hbox{\(f(x)=x^2\)}
+\typeout{SUUSHIKI|part|math|\the\wd0}
+\setbox0=\hbox{を考える。}
+\typeout{SUUSHIKI|part|right|\the\wd0}
+% Two copies, with two independent line-width conditions.
+\setbox0=\vbox{\hsize=120pt \parindent=0pt \noindent 関数\(f(x)=x^2\)を考える。関数\(f(x)=x^2\)を考える。\par}
+\directlua{local b=tex.box[0];local c=0;for n in node.traverse(b.head) do if n.id==node.id('hlist') then c=c+1 end end; texio.write_nl('term and log','SUUSHIKI|paragraph|t02a-twice-12zw|'..c..'|'..b.height..'|'..b.depth)}
+\setbox0=\vbox{\hsize=240pt \parindent=0pt \noindent 関数\(f(x)=x^2\)を考える。関数\(f(x)=x^2\)を考える。\par}
+\directlua{local b=tex.box[0];local c=0;for n in node.traverse(b.head) do if n.id==node.id('hlist') then c=c+1 end end; texio.write_nl('term and log','SUUSHIKI|paragraph|t02a-twice-24zw|'..c..'|'..b.height..'|'..b.depth)}
+\setbox0=\vbox{\hsize=120pt \parindent=0pt \noindent 関数 \(f(x)=x^2\) を考える。関数 \(f(x)=x^2\) を考える。\par}
+\directlua{local b=tex.box[0];local c=0;for n in node.traverse(b.head) do if n.id==node.id('hlist') then c=c+1 end end; texio.write_nl('term and log','SUUSHIKI|paragraph|t02b-twice-12zw|'..c..'|'..b.height..'|'..b.depth)}
+\end{document}

@@ -216,6 +216,51 @@ try {
   const q = JSON.parse(await page.locator('#document-metrics').textContent());
   assert.ok(q.summary.geometry.some(g => g.boundary.requestedRight > 0));
   assert.equal(q.source, c.source);
+
+  // Reproducible LuaLaTeX reference, normalized against the browser em size.
+  // This deliberately does not assert equality of line counts across fonts.
+  await page.locator('#document-font-size').selectOption('20');
+  await page.locator('#document-boundary-spacing').selectOption('elastic');
+  await page.locator('#document-example').selectOption('t02d');
+  await page.locator('#document-width').evaluate(input => {
+    input.value = '240';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await page.waitForFunction(() => {
+    const raw = document.getElementById('document-metrics').textContent;
+    if (document.getElementById('document-status').dataset.state !== 'ready' || !raw) return false;
+    const data = JSON.parse(raw);
+    return data.source === document.getElementById('document-source').value &&
+      data.settings.boundarySpacing === 'elastic' &&
+      data.settings.fontSize === 20 && data.settings.width === 240 &&
+      data.latexComparison?.paragraph?.widthInTexZw === 12;
+  }, null, { timeout: 30000 });
+  const latexNarrow = JSON.parse(await page.locator('#document-metrics').textContent());
+  assert.equal(latexNarrow.latexComparison.latex.xkanjiskipNaturalZw, 0.25);
+  assert.equal(latexNarrow.latexComparison.latex.xkanjiskipStretchZw, 0.25);
+  assert.equal(latexNarrow.latexComparison.latex.xkanjiskipShrinkZw, 0.125);
+  assert.equal(latexNarrow.latexComparison.paragraph.latexLines, 2);
+  assert.equal(latexNarrow.latexComparison.paragraph.comparable, false);
+  assert.equal(latexNarrow.summary.elasticBudgets.reduce((n, item) =>
+    n + item.appliedAdjustment, 0), 0);
+  assert.ok(latexNarrow.summary.elasticBudgets.some(item => item.stretch > 0));
+  assert.ok((await page.locator('#document-latex-compare').textContent()).includes('伸縮予算は診断専用'));
+  await page.screenshot({ path: 'artifacts/suushiki-latex-reference-12zw.png', fullPage: true });
+  await page.locator('#document-width').evaluate(input => {
+    input.value = '480';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await page.waitForFunction(() => {
+    const raw = document.getElementById('document-metrics').textContent;
+    return document.getElementById('document-status').dataset.state === 'ready' &&
+      raw && JSON.parse(raw).latexComparison?.paragraph?.widthInTexZw === 24;
+  }, null, { timeout: 30000 });
+  const latexWide = JSON.parse(await page.locator('#document-metrics').textContent());
+  assert.equal(latexWide.latexComparison.paragraph.latexLines, 1);
+  assert.equal(latexWide.summary.geometry.length, 2);
+  assert.equal(latexWide.source, latexNarrow.source);
+  await page.screenshot({ path: 'artifacts/suushiki-latex-reference-24zw.png', fullPage: true });
+
   assert.deepEqual(errors, []);
   console.log('Browser smoke checks passed; screenshots saved in artifacts/.');
 } finally {

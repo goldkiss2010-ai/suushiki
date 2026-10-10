@@ -3,10 +3,12 @@ import { parseDocument, documentExamples, MathSourceError } from './document-sou
 import { layoutDocument } from './document-layout.js';
 import { mountDocument } from './document-render.js';
 import { collisionCases } from './collision-cases.js';
+import { compareWithLatex, comparisonText } from './latex-compare.js';
 
 const $ = id => document.getElementById(id);
 const measurer = getSharedCanvasMeasurer();
 const measurements = new Map();
+let latexReference = null;
 const round = n => Math.round(n * 1000) / 1000;
 let requested = 0;
 let running = false;
@@ -160,6 +162,13 @@ async function refresh() {
       $('document-diagnostic').dataset.result =
         result.status === 'composed' && result.overlaps.length === 0 ? 'ok' : 'warning';
       record = safeRecord(result, source, config);
+      if (latexReference) {
+        const comparison = compareWithLatex(result, config, latexReference, collisionCases.t02d.source);
+        record.latexComparison = comparison;
+        $('document-latex-compare').textContent = comparisonText(comparison);
+      } else {
+        $('document-latex-compare').textContent = '参照スナップショットを読み込めませんでした。';
+      }
       currentMath = items.filter(i => i.type === 'math').map(i => i.tex);
       const { runs, ...small } = record;
       $('document-metrics').textContent = JSON.stringify({
@@ -174,6 +183,7 @@ async function refresh() {
     $('document-output').replaceChildren();
     $('document-diagnostic').textContent = '';
     $('document-metrics').textContent = '';
+    $('document-latex-compare').textContent = '';
     $('document-status').textContent = 'エラー：' + error.message;
     $('document-status').dataset.state = 'error';
     // A user typing an unfinished delimiter is an expected validation state.
@@ -235,6 +245,10 @@ try {
   }
   if (!window.MathJax?.startup?.promise) throw new Error('MathJax が読み込めませんでした。npm ci と再起動を確認してください。');
   await window.MathJax.startup.promise;
+  try {
+    const response = await fetch('/latex-reference.json');
+    if (response.ok) latexReference = await response.json();
+  } catch { /* The layout workbench remains usable without the benchmark. */ }
   if (!measurer) throw new Error('Canvas 2D に対応したブラウザーが必要です。');
   await refresh();
 } catch (error) {

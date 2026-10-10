@@ -22,6 +22,9 @@ jobs:
       - run: npm test
       - name: Syntax check browser modules
         run: |
+          node --check public/latex-compare.js
+          node --check scripts/parse-tex-reference.mjs
+          node --check scripts/tex-reference.mjs
           node --check public/math-boundary.js
           node --check public/collision-cases.js
           node --check public/document-source.js
