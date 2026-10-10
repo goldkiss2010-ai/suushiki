@@ -1,5 +1,8 @@
 # 行頭・行末の1pxスイープ：HTML・Stone候補・SUUSHIKI
 
+> **資料の位置付け**：この1pxスイープは既知の禁則問題を検証したときの測定ログです。現在の結論・留保は[数式と禁則の日本語解説](research/01-kinsoku-atomic-inline.md)で整理しました。新たな衝突事例を探す方針ではありません。
+
+
 2026-10-11 / Chromium 140（Playwright 1.55.1、Ubuntu Actions環境）。
 本文20px、sans-serif、幅90–260px、1px刻み171条件 × 原稿3種類 × HTMLの空き制御2種類＝計1,026観測。
 
