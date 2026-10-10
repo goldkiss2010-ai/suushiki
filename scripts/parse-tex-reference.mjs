@@ -35,14 +35,18 @@ export function parseLatexLog(log) {
       if (Object.hasOwn(target, key)) throw new Error('Duplicate measurement: ' + key);
       target[key] = parseDimension(values[0]);
     } else if (kind === 'paragraph') {
-      if (values.length !== 3 || values.some(value => !/^\d+$/.test(value))) {
+      // LuaTeX's log can append "(./reference.aux)" after the last tag.
+      // Accept only a trailing TeX log annotation, never a malformed number.
+      const cells = values.map((value, index) => index === 2 ?
+        value.match(/^(\d+)(?:\s|$)/)?.[1] : (/^\d+$/.test(value) ? value : null));
+      if (values.length !== 3 || cells.some(value => value === null || value === undefined)) {
         throw new Error('Malformed paragraph measurement: ' + line);
       }
       if (Object.hasOwn(parsed.paragraphs, key)) throw new Error('Duplicate paragraph: ' + key);
       const widthZw = Number(key.match(/-(\d+)zw$/)?.[1]);
       if (!Number.isFinite(widthZw) || !widthZw) throw new Error('No paragraph width: ' + key);
       parsed.paragraphs[key] = {
-        widthZw, lineCount: Number(values[0]), heightSp: Number(values[1]), depthSp: Number(values[2]),
+        widthZw, lineCount: Number(cells[0]), heightSp: Number(cells[1]), depthSp: Number(cells[2]),
       };
     } else throw new Error('Unknown measurement type: ' + kind);
   }
